@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import NoteTypeSelector from '../components/notes/NoteTypeSelector';
-import NoteForm from '../components/notes/NoteForm';
+import { Button } from '@/components/ui/button';
+import NoteTypeSelector from '@/components/notes/NoteTypeSelector';
+import NoteForm from '@/components/notes/NoteForm';
 import { NoteType, Note } from '../types';
 import { api } from '../utils/api';
 import { toast } from 'sonner';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { systemNoteTypes, basicNoteType } from '../data/systemNoteTypes';
 
 const NoteEditor: React.FC = () => {

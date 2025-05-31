@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Button } from '../components/ui/button';
+import { Button } from '@/components/ui/button';
 import { NoteType } from '../types';
 import { toast } from 'sonner';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { systemNoteTypes, basicNoteType } from '../data/systemNoteTypes';
 
 const NoteTypes: React.FC = () => {

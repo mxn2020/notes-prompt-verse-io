@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ChevronLeft, Edit, Trash, Copy, Pin, Share } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import NoteThread from '../components/notes/NoteThread';
+import { Button } from '@/components/ui/button';
+import NoteThread from '@/components/notes/NoteThread';
 import { NoteThread as NoteThreadType } from '../types';
 import { api } from '../utils/api';
 import { toast } from 'sonner';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const NoteDetail: React.FC = () => {
   const { noteId } = useParams<{ noteId: string }>();
