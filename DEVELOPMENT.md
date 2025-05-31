@@ -116,16 +116,6 @@ sessions:{sessionId}             # User sessions
    ls -la .env
    cat .env | grep -v '#'
    ```
-
-4. **Functions not starting**
-   ```bash
-   # Make sure Netlify CLI is installed
-   npm install -g netlify-cli
-   
-   # Login to Netlify
-   netlify login
-   ```
-
 ### Development Tips
 
 - Use the browser dev tools to check for console errors
