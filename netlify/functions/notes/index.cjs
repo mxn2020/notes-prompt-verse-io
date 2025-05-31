@@ -1,6 +1,8 @@
 const cookie = require('cookie');
 const jwt = require('jsonwebtoken');
 const { Redis } = require('@upstash/redis');
+const { nanoid } = require('nanoid');
+const { uploadImage, deleteImage } = require('./cloudinary');
 const crypto = require('crypto');
 
 // Initialize Redis client
@@ -9,7 +11,7 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN || 'example-token',
 });
 
-// JWT secret (in production, use env variable)
+// JWT configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const COOKIE_NAME = 'promptnotes_session';
 
@@ -41,6 +43,80 @@ const getUserIdFromRequest = (event) => {
   } catch (error) {
     console.error('Error getting user ID:', error);
     return null;
+  }
+};
+
+// Handle image upload
+const handleImageUpload = async (event) => {
+  try {
+    const userId = getUserIdFromRequest(event);
+    
+    if (!userId) {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({
+          success: false,
+          error: 'Not authenticated',
+        }),
+      };
+    }
+
+    const formData = await event.body;
+    const result = await uploadImage(formData, `notes/${userId}`);
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        success: true,
+        data: result,
+      }),
+    };
+  } catch (error) {
+    console.error('Image upload error:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        success: false,
+        error: 'Failed to upload image',
+      }),
+    };
+  }
+};
+
+// Handle image deletion
+const handleImageDelete = async (event) => {
+  try {
+    const userId = getUserIdFromRequest(event);
+    
+    if (!userId) {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({
+          success: false,
+          error: 'Not authenticated',
+        }),
+      };
+    }
+
+    const { publicId } = JSON.parse(event.body);
+    await deleteImage(publicId);
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        success: true,
+        message: 'Image deleted successfully',
+      }),
+    };
+  } catch (error) {
+    console.error('Image delete error:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        success: false,
+        error: 'Failed to delete image',
+      }),
+    };
   }
 };
 
@@ -623,6 +699,15 @@ exports.handler = async (event) => {
     // Remove the Netlify function prefix
     if (path.startsWith('/.netlify/functions/notes')) {
       path = path.replace('/.netlify/functions/notes', '');
+    }
+    
+    // Image upload/delete routes
+    if (path === '/upload' && event.httpMethod === 'POST') {
+      return addCorsHeaders(await handleImageUpload(event));
+    }
+
+    if (path === '/image' && event.httpMethod === 'DELETE') {
+      return addCorsHeaders(await handleImageDelete(event));
     }
     
     // Ensure path starts with / if not empty
