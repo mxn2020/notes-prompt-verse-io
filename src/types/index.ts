@@ -31,8 +31,16 @@ export interface Note {
   color?: string;
   isPinned: boolean;
   isArchived: boolean;
+  images?: NoteImage[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface NoteImage {
+  id: string;
+  url: string;
+  publicId: string;
+  caption?: string;
 }
 
 export interface NoteThread {
@@ -46,11 +54,12 @@ export interface NoteTypeField {
   id: string;
   name: string;
   label: string;
-  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'date' | 'number' | 'radio' | 'color';
+  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'date' | 'number' | 'radio' | 'color' | 'image';
   placeholder?: string;
   required?: boolean;
   options?: string[]; // For select and radio
   defaultValue?: any;
+  maxImages?: number; // For image type fields
 }
 
 export interface NoteType {
