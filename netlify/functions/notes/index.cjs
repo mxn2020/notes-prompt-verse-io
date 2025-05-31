@@ -1,7 +1,7 @@
-import cookie from 'cookie';
-import jwt from 'jsonwebtoken';
-import { Redis } from '@upstash/redis';
-import { nanoid } from 'nanoid';
+const cookie = require('cookie');
+const jwt = require('jsonwebtoken');
+const { Redis } = require('@upstash/redis');
+const crypto = require('crypto');
 
 // Initialize Redis client
 const redis = new Redis({
@@ -42,6 +42,18 @@ const getUserIdFromRequest = (event) => {
     console.error('Error getting user ID:', error);
     return null;
   }
+};
+
+const getNoteIdFromPath = (eventPath) => {
+  // Remove the Netlify function prefix
+  let path = eventPath;
+  if (path.startsWith('/.netlify/functions/notes')) {
+    path = path.replace('/.netlify/functions/notes', '');
+  }
+  
+  // Extract noteId from path like "/noteId" 
+  const pathParts = path.split('/').filter(Boolean);
+  return pathParts.length > 0 ? pathParts[0] : null;
 };
 
 // Get all notes for a user
@@ -114,7 +126,7 @@ const getNoteHandler = async (event) => {
       };
     }
     
-    const noteId = event.path.split('/').pop();
+    const noteId = getNoteIdFromPath(event.path);
     
     if (!noteId) {
       return {
@@ -170,27 +182,6 @@ const getNoteHandler = async (event) => {
           replies: validReplies,
         };
       }
-    } else if (note.threadId) {
-      // This is a reply in a thread, get the thread
-      const rootNote = await redis.get(`notes:${note.threadId}`);
-      
-      if (rootNote) {
-        const replyIds = await redis.smembers(`notes:thread:${note.threadId}`);
-        
-        if (replyIds && replyIds.length > 0) {
-          const replyPromises = replyIds.map((replyId) => redis.get(`notes:${replyId}`));
-          const replies = await Promise.all(replyPromises);
-          
-          // Filter out null values
-          const validReplies = replies.filter(Boolean);
-          
-          thread = {
-            id: rootNote.id,
-            rootNote,
-            replies: validReplies,
-          };
-        }
-      }
     }
     
     return {
@@ -230,17 +221,43 @@ const createNoteHandler = async (event) => {
     
     const { title, content, type, fields, tags, category, color, parentId } = JSON.parse(event.body);
     
-    if (!title || !content || !type) {
+    // Content and type are always required
+    if (!content || !type) {
       return {
         statusCode: 400,
         body: JSON.stringify({
           success: false,
-          error: 'Title, content, and type are required',
+          error: 'Content and type are required',
         }),
       };
     }
     
-    const noteId = nanoid();
+    // For basic notes, title is optional - generate from content if not provided
+    let noteTitle = title;
+    if (!noteTitle && type === 'basic-note') {
+      // Generate title from first 50 characters of content
+      noteTitle = content.length > 50 
+        ? content.substring(0, 47).trim() + '...'
+        : content.trim();
+      
+      // If still empty, use a default title
+      if (!noteTitle) {
+        noteTitle = 'Basic Note';
+      }
+    }
+    
+    // For non-basic notes, title is still required
+    if (!noteTitle && type !== 'basic-note') {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          success: false,
+          error: 'Title is required for this note type',
+        }),
+      };
+    }
+    
+    const noteId = crypto.randomUUID();
     const now = new Date().toISOString();
     
     // If this is a reply to a parent note, get the parent note
@@ -266,7 +283,7 @@ const createNoteHandler = async (event) => {
     const noteData = {
       id: noteId,
       userId,
-      title,
+      title: noteTitle,
       content,
       type,
       fields: fields || {},
@@ -340,7 +357,7 @@ const updateNoteHandler = async (event) => {
       };
     }
     
-    const noteId = event.path.split('/').pop();
+    const noteId = getNoteIdFromPath(event.path);
     
     if (!noteId) {
       return {
@@ -458,7 +475,7 @@ const deleteNoteHandler = async (event) => {
       };
     }
     
-    const noteId = event.path.split('/').pop();
+    const noteId = getNoteIdFromPath(event.path);
     
     if (!noteId) {
       return {
@@ -570,7 +587,7 @@ const deleteNoteHandler = async (event) => {
 };
 
 // Main handler
-export const handler = async (event) => {
+exports.handler = async (event) => {
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': process.env.URL || 'http://localhost:8888',
@@ -600,27 +617,41 @@ export const handler = async (event) => {
   };
   
   try {
-    // Route handling
-    const path = event.path.replace('/notes', '').replace('/.netlify/functions/notes', '');
+    // Route handling - Remove the Netlify function prefix to get the actual API path
+    let path = event.path;
     
-    if (event.httpMethod === 'GET' && (path === '' || path === '/')) {
-      return addCorsHeaders(await getNotesHandler(event));
+    // Remove the Netlify function prefix
+    if (path.startsWith('/.netlify/functions/notes')) {
+      path = path.replace('/.netlify/functions/notes', '');
     }
     
-    if (event.httpMethod === 'GET' && path.match(/^\/[a-zA-Z0-9_-]+$/)) {
-      return addCorsHeaders(await getNoteHandler(event));
+    // Ensure path starts with / if not empty
+    if (path && !path.startsWith('/')) {
+      path = '/' + path;
+    }
+    
+    // Handle root path (GET /notes - list all notes, POST /notes - create note)
+    if (event.httpMethod === 'GET' && (path === '' || path === '/')) {
+      return addCorsHeaders(await getNotesHandler(event));
     }
     
     if (event.httpMethod === 'POST' && (path === '' || path === '/')) {
       return addCorsHeaders(await createNoteHandler(event));
     }
     
-    if (event.httpMethod === 'PUT' && path.match(/^\/[a-zA-Z0-9_-]+$/)) {
-      return addCorsHeaders(await updateNoteHandler(event));
-    }
-    
-    if (event.httpMethod === 'DELETE' && path.match(/^\/[a-zA-Z0-9_-]+$/)) {
-      return addCorsHeaders(await deleteNoteHandler(event));
+    // Handle specific note paths (GET /notes/:id, PUT /notes/:id, DELETE /notes/:id)
+    if (path.match(/^\/[a-zA-Z0-9_-]+$/)) {
+      if (event.httpMethod === 'GET') {
+        return addCorsHeaders(await getNoteHandler(event));
+      }
+      
+      if (event.httpMethod === 'PUT') {
+        return addCorsHeaders(await updateNoteHandler(event));
+      }
+      
+      if (event.httpMethod === 'DELETE') {
+        return addCorsHeaders(await deleteNoteHandler(event));
+      }
     }
     
     return addCorsHeaders({

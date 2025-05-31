@@ -1,34 +1,42 @@
+# Netlify Configuration for React Notes App with Vite
+
 [build]
   publish = "dist"
   command = "npm run build"
-  functions = "netlify/functions"
 
-[build.environment]
-  NODE_VERSION = "18"
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
 
-# Health check endpoint
+[dev]
+  # Let Netlify auto-detect the framework and proxy properly
+  autoLaunch = false
+  targetPort = 5173
+  port = 8888
+  # Remove custom command to let Netlify handle Vite properly
+  
+# API routes to Netlify functions
 [[redirects]]
-  from = "/api/health"
-  to = "/.netlify/functions/health"
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
   status = 200
 
-# Auth endpoints
-[[redirects]]
-  from = "/api/auth/*"
-  to = "/.netlify/functions/auth"
-  status = 200
-
-# Notes endpoints
-[[redirects]]
-  from = "/api/notes/*"
-  to = "/.netlify/functions/notes"
-  status = 200
-
-# SPA fallback - this must be last
+# SPA fallback for production only - exclude common static file extensions
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  # Only apply in production, not dev
+  conditions = {Country = ["!dev"]}
+
+[context.development.environment]
+  NODE_ENV = "development"
+
+[context.production.environment]
+  NODE_ENV = "production"
+
+[context.deploy-preview.environment]
+  NODE_ENV = "development"
 
 # Headers for security
 [[headers]]
@@ -38,7 +46,6 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
 
 # Cache static assets
 [[headers]]
@@ -46,14 +53,8 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Development environment variables
-[context.dev.environment]
-  NODE_ENV = "development"
-
-# Production environment variables
-[context.production.environment]
-  NODE_ENV = "production"
-
-# Branch deploy environment
-[context.branch-deploy.environment]
-  NODE_ENV = "staging"
+# Don't cache the main HTML file
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"

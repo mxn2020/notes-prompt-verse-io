@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Home, Layers, Tag, FolderOpen, Plus, Settings, ChevronRight, ChevronDown, Notebook, PenTool } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
+import { api } from '../../utils/api';
+import { Note } from '../../types';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -11,22 +13,86 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   const [categoriesOpen, setCategoriesOpen] = useState(true);
   const [tagsOpen, setTagsOpen] = useState(false);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // This would come from API in a real app
-  const categories = [
-    { id: '1', name: 'Hackathon', color: 'primary-500' },
-    { id: '2', name: 'Product Ideas', color: 'secondary-500' },
-    { id: '3', name: 'Learning', color: 'accent-500' },
-    { id: '4', name: 'Meetings', color: 'error-500' },
-  ];
+  // Fetch notes to extract categories and tags
+  useEffect(() => {
+    const fetchNotes = async () => {
+      try {
+        setIsLoading(true);
+        const response = await api.get('/notes');
+        if (response.data.success) {
+          setNotes(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching notes for sidebar:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  // This would come from API in a real app
-  const tags = [
-    { id: '1', name: 'important', count: 4 },
-    { id: '2', name: 'productivity', count: 6 },
-    { id: '3', name: 'reference', count: 2 },
-    { id: '4', name: 'ideas', count: 5 },
-  ];
+    fetchNotes();
+  }, []);
+
+  // Simple function to assign colors to categories
+  const getCategoryColor = (category: string): string => {
+    const colors = [
+      'blue-500',
+      'green-500', 
+      'purple-500',
+      'orange-500',
+      'red-500',
+      'teal-500',
+      'pink-500',
+      'indigo-500'
+    ];
+    
+    const hash = category.split('').reduce((acc, char) => {
+      return char.charCodeAt(0) + ((acc << 5) - acc);
+    }, 0);
+    
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  // Extract unique categories from notes
+  const categories = React.useMemo(() => {
+    const categoryMap = new Map<string, number>();
+    
+    notes.forEach((note) => {
+      if (note.category) {
+        const count = categoryMap.get(note.category) || 0;
+        categoryMap.set(note.category, count + 1);
+      }
+    });
+
+    return Array.from(categoryMap.entries())
+      .map(([name, count]) => ({
+        id: name.toLowerCase().replace(/\s+/g, '-'),
+        name,
+        count,
+        color: getCategoryColor(name),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [notes]);
+
+  // Extract unique tags from notes
+  const tags = React.useMemo(() => {
+    const tagMap = new Map<string, number>();
+    
+    notes.forEach((note) => {
+      if (note.tags && Array.isArray(note.tags)) {
+        note.tags.forEach((tag) => {
+          const count = tagMap.get(tag) || 0;
+          tagMap.set(tag, count + 1);
+        });
+      }
+    });
+
+    return Array.from(tagMap.entries())
+      .map(([name, count]) => ({ id: name, name, count }))
+      .sort((a, b) => b.count - a.count); // Sort by count, most used first
+  }, [notes]);
 
   const toggleCategories = () => {
     setCategoriesOpen(!categoriesOpen);
@@ -37,8 +103,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   };
 
   const sidebarClasses = twMerge(
-    'fixed h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out z-20',
-    isOpen ? 'w-64' : 'w-0 -translate-x-full md:translate-x-0 md:w-16'
+    'h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out',
+    isOpen ? 'w-64' : 'w-0 md:w-16 overflow-hidden'
   );
 
   if (!isOpen) {
@@ -166,23 +232,34 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           </button>
           {categoriesOpen && (
             <div className="ml-2 pl-2 border-l border-gray-200 mt-1 space-y-1">
-              {categories.map((category) => (
-                <NavLink
-                  key={category.id}
-                  to={`/?category=${category.id}`}
-                  className="flex items-center px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 hover:text-primary-600 rounded-md"
-                >
-                  <div className={`w-2 h-2 rounded-full bg-${category.color} mr-2`} />
-                  {category.name}
-                </NavLink>
-              ))}
-              <NavLink
-                to="/settings?tab=categories"
-                className="flex items-center px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 hover:text-primary-600 rounded-md"
-              >
-                <Plus className="h-3 w-3 mr-2" />
-                Add category
-              </NavLink>
+              {isLoading ? (
+                <div className="px-2 py-1 text-sm text-gray-500">Loading...</div>
+              ) : categories.length > 0 ? (
+                <>
+                  {categories.map((category) => (
+                    <NavLink
+                      key={category.id}
+                      to={`/?category=${encodeURIComponent(category.name)}`}
+                      className="flex items-center justify-between px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 hover:text-primary-600 rounded-md"
+                    >
+                      <div className="flex items-center">
+                        <div className={`w-2 h-2 rounded-full bg-${category.color} mr-2`} />
+                        {category.name}
+                      </div>
+                      <span className="text-xs text-gray-500">{category.count}</span>
+                    </NavLink>
+                  ))}
+                  <NavLink
+                    to="/settings?tab=categories"
+                    className="flex items-center px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 hover:text-primary-600 rounded-md"
+                  >
+                    <Plus className="h-3 w-3 mr-2" />
+                    Add category
+                  </NavLink>
+                </>
+              ) : (
+                <div className="px-2 py-1 text-sm text-gray-500">No categories yet</div>
+              )}
             </div>
           )}
         </div>

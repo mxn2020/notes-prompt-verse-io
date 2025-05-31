@@ -15,10 +15,14 @@ const Dashboard: React.FC = () => {
   const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchNotes = async () => {
       try {
         setIsLoading(true);
         const response = await api.get('/notes');
+        
+        if (!isMounted) return; // Prevent state updates if component unmounted
         
         if (response.data.success) {
           setNotes(response.data.data);
@@ -26,14 +30,23 @@ const Dashboard: React.FC = () => {
           toast.error(response.data.error || 'Failed to fetch notes');
         }
       } catch (error) {
+        if (!isMounted) return; // Prevent state updates if component unmounted
+        
         console.error('Error fetching notes:', error);
         toast.error('Failed to fetch notes. Please try again.');
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchNotes();
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleTogglePin = async (noteId: string) => {
@@ -74,70 +87,6 @@ const Dashboard: React.FC = () => {
   const toggleFilterPanel = () => {
     setFilterOpen(!filterOpen);
   };
-
-  // For demo purposes, simulate some notes
-  const demoNotes: Note[] = [
-    {
-      id: '1',
-      userId: 'user1',
-      title: 'Hackathon Day 1 Progress',
-      content: 'Started working on the project architecture. Set up the basic React components and implemented the authentication flow.',
-      type: 'Daily Progress',
-      fields: {
-        mood: 'Excited',
-        energy: 'High',
-        challenges: 'Deciding on the best state management approach',
-        wins: 'Got the basic structure working',
-        tomorrow: 'Implement the note editor component'
-      },
-      category: 'Hackathon',
-      tags: ['progress', 'day1'],
-      color: 'blue',
-      isPinned: true,
-      isArchived: false,
-      createdAt: new Date(Date.now() - 86400000).toISOString(),
-      updatedAt: new Date(Date.now() - 86400000).toISOString()
-    },
-    {
-      id: '2',
-      userId: 'user1',
-      title: 'Feature Ideas for prompt-verse.io',
-      content: 'AI-powered prompt suggestions based on user history. Collaborative prompt editing for teams. Version history for prompts.',
-      type: 'Feature Idea',
-      fields: {
-        priority: 'Must Have',
-        impact: 'High impact for user experience',
-        implementation: 'Will require integrating with an AI service'
-      },
-      category: 'Product Ideas',
-      tags: ['feature', 'ai'],
-      color: 'green',
-      isPinned: false,
-      isArchived: false,
-      createdAt: new Date(Date.now() - 172800000).toISOString(),
-      updatedAt: new Date(Date.now() - 172800000).toISOString()
-    },
-    {
-      id: '3',
-      userId: 'user1',
-      title: 'Kickoff Meeting Notes',
-      content: 'Discussed project scope, timeline, and key features. Everyone is excited about the hackathon!',
-      type: 'Meeting Notes',
-      fields: {
-        attendees: 'John, Sarah, Miguel',
-        action_items: 'John: Research APIs, Sarah: Design mockups, Miguel: Set up the repo',
-        follow_up: '2023-06-15'
-      },
-      category: 'Meetings',
-      tags: ['meeting', 'kickoff'],
-      color: 'yellow',
-      isPinned: false,
-      isArchived: false,
-      threadId: '3',
-      createdAt: new Date(Date.now() - 259200000).toISOString(),
-      updatedAt: new Date(Date.now() - 259200000).toISOString()
-    }
-  ];
 
   // If loading, show a loading spinner
   if (isLoading) {
@@ -258,7 +207,7 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Pinned notes section */}
-      {demoNotes.some((note) => note.isPinned) && (
+      {notes.some((note) => note.isPinned) && (
         <div className="mb-8">
           <h2 className="text-lg font-medium text-gray-900 mb-4">
             Pinned Notes
@@ -268,7 +217,7 @@ const Dashboard: React.FC = () => {
               ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
               : 'grid-cols-1'
           }`}>
-            {demoNotes
+            {notes
               .filter((note) => note.isPinned)
               .map((note) => (
                 <NoteCard
@@ -286,7 +235,7 @@ const Dashboard: React.FC = () => {
         <h2 className="text-lg font-medium text-gray-900 mb-4">
           Recent Notes
         </h2>
-        {demoNotes.length === 0 ? (
+        {notes.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
             <div className="text-gray-400 mb-4">
               <Plus className="h-12 w-12 mx-auto" />
@@ -307,7 +256,7 @@ const Dashboard: React.FC = () => {
               ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
               : 'grid-cols-1'
           }`}>
-            {demoNotes
+            {notes
               .filter((note) => !note.isPinned)
               .map((note) => (
                 <NoteCard

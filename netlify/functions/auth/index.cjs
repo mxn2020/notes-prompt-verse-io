@@ -1,6 +1,7 @@
-import cookie from 'cookie';
-import jwt from 'jsonwebtoken';
-import { Redis } from '@upstash/redis';
+const cookie = require('cookie');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
+const { Redis } = require('@upstash/redis');
 
 // Initialize Redis client
 const redis = new Redis({
@@ -12,6 +13,21 @@ const redis = new Redis({
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRY = '7d';
 const COOKIE_NAME = 'promptnotes_session';
+const SALT_ROUNDS = 12; // Number of salt rounds for bcrypt
+
+// Password hashing helpers
+const hashPassword = async (password) => {
+  return await bcrypt.hash(password, SALT_ROUNDS);
+};
+
+const comparePassword = async (password, hashedPassword) => {
+  return await bcrypt.compare(password, hashedPassword);
+};
+
+// Check if password is already hashed (bcrypt hashes start with $2b$)
+const isPasswordHashed = (password) => {
+  return password && password.startsWith('$2b$');
+};
 
 // Helper functions
 const generateToken = (userId) => {
@@ -80,6 +96,17 @@ const registerHandler = async (event) => {
       };
     }
     
+    // Validate password strength
+    if (password.length < 6) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          success: false,
+          error: 'Password must be at least 6 characters long',
+        }),
+      };
+    }
+    
     // Check if user already exists
     const userKey = `user:email:${email}`;
     const existingUserId = await redis.get(userKey);
@@ -96,11 +123,15 @@ const registerHandler = async (event) => {
     
     // Create new user
     const userId = Date.now().toString();
+    
+    // Hash the password before storing
+    const hashedPassword = await hashPassword(password);
+    
     const userData = {
       id: userId,
       email,
       name,
-      password, // In production, hash this password
+      password: hashedPassword, // Store hashed password
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -172,7 +203,42 @@ const loginHandler = async (event) => {
     // Get user data
     const userData = await redis.get(`user:${userId}`);
     
-    if (!userData || userData.password !== password) { // In production, compare hashed passwords
+    if (!userData) {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({
+          success: false,
+          error: 'Invalid email or password',
+        }),
+      };
+    }
+    
+    let isValidPassword = false;
+    
+    // Check if password is already hashed or plaintext (for backward compatibility)
+    if (isPasswordHashed(userData.password)) {
+      // Password is hashed, use bcrypt to compare
+      isValidPassword = await comparePassword(password, userData.password);
+    } else {
+      // Legacy plaintext password, compare directly and migrate to hashed
+      if (userData.password === password) {
+        isValidPassword = true;
+        
+        // Migrate to hashed password
+        const hashedPassword = await hashPassword(password);
+        const updatedUser = {
+          ...userData,
+          password: hashedPassword,
+          updatedAt: new Date().toISOString(),
+        };
+        
+        // Update user with hashed password
+        await redis.set(`user:${userId}`, updatedUser);
+        console.log('Migrated plaintext password to hashed for user:', userId);
+      }
+    }
+    
+    if (!isValidPassword) {
       return {
         statusCode: 401,
         body: JSON.stringify({
@@ -230,14 +296,18 @@ const logoutHandler = () => {
 const getMeHandler = async (event) => {
   try {
     const cookies = cookie.parse(event.headers.cookie || '');
-    const token = cookies[COOKIE_NAME];
+    const token = cookies[COOKIE_NAME]; // Only look for our specific cookie
+    
+    console.log('Available cookies:', Object.keys(cookies));
+    console.log('Looking for cookie:', COOKIE_NAME);
+    console.log('Found token:', token ? 'YES' : 'NO');
     
     if (!token) {
       return {
         statusCode: 401,
         body: JSON.stringify({
           success: false,
-          error: 'Not authenticated',
+          error: 'Not authenticated - no session cookie found',
         }),
       };
     }
@@ -262,6 +332,9 @@ const getMeHandler = async (event) => {
     if (!user) {
       return {
         statusCode: 404,
+        headers: {
+          'Set-Cookie': clearCookie(),
+        },
         body: JSON.stringify({
           success: false,
           error: 'User not found',
@@ -292,14 +365,18 @@ const getMeHandler = async (event) => {
 const refreshHandler = async (event) => {
   try {
     const cookies = cookie.parse(event.headers.cookie || '');
-    const token = cookies[COOKIE_NAME];
+    const token = cookies[COOKIE_NAME]; // Only look for our specific cookie
+    
+    console.log('Refresh - Available cookies:', Object.keys(cookies));
+    console.log('Refresh - Looking for cookie:', COOKIE_NAME);
+    console.log('Refresh - Found token:', token ? 'YES' : 'NO');
     
     if (!token) {
       return {
         statusCode: 401,
         body: JSON.stringify({
           success: false,
-          error: 'Not authenticated',
+          error: 'Not authenticated - no session cookie found',
         }),
       };
     }
@@ -421,8 +498,114 @@ const updateUserHandler = async (event) => {
   }
 };
 
+const changePasswordHandler = async (event) => {
+  try {
+    const cookies = cookie.parse(event.headers.cookie || '');
+    const token = cookies[COOKIE_NAME];
+    
+    if (!token) {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({
+          success: false,
+          error: 'Not authenticated',
+        }),
+      };
+    }
+    
+    const decoded = verifyToken(token);
+    
+    if (!decoded) {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({
+          success: false,
+          error: 'Invalid or expired token',
+        }),
+      };
+    }
+    
+    const { currentPassword, newPassword } = JSON.parse(event.body);
+    
+    if (!currentPassword || !newPassword) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          success: false,
+          error: 'Current password and new password are required',
+        }),
+      };
+    }
+    
+    if (newPassword.length < 6) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          success: false,
+          error: 'New password must be at least 6 characters long',
+        }),
+      };
+    }
+    
+    const userData = await redis.get(`user:${decoded.userId}`);
+    
+    if (!userData) {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({
+          success: false,
+          error: 'User not found',
+        }),
+      };
+    }
+    
+    // Verify current password
+    const isValidPassword = await comparePassword(currentPassword, userData.password);
+    
+    if (!isValidPassword) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          success: false,
+          error: 'Current password is incorrect',
+        }),
+      };
+    }
+    
+    // Hash new password
+    const hashedNewPassword = await hashPassword(newPassword);
+    
+    // Update user with new password
+    const updatedUser = {
+      ...userData,
+      password: hashedNewPassword,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    await redis.set(`user:${decoded.userId}`, updatedUser);
+    
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        success: true,
+        message: 'Password changed successfully',
+      }),
+    };
+  } catch (error) {
+    console.error('Change password error:', error);
+    
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        success: false,
+        error: 'An error occurred',
+      }),
+    };
+  }
+};
+
 // Main handler
-export const handler = async (event) => {
+exports.handler = async (event) => {
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': process.env.URL || 'http://localhost:8888',
@@ -497,6 +680,10 @@ export const handler = async (event) => {
     
     if (event.httpMethod === 'PUT' && path === '/user') {
       return addCorsHeaders(await updateUserHandler(event));
+    }
+    
+    if (event.httpMethod === 'PUT' && path === '/change-password') {
+      return addCorsHeaders(await changePasswordHandler(event));
     }
     
     return addCorsHeaders({

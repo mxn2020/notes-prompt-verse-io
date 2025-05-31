@@ -1,7 +1,7 @@
-import { Redis } from '@upstash/redis';
+const { Redis } = require('@upstash/redis');
 
 // Health check endpoint to verify environment configuration
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': process.env.CORS_ORIGINS || 'http://localhost:8888',

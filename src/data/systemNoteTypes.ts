@@ -456,18 +456,10 @@ export const systemNoteTypes: Omit<NoteType, 'userId' | 'createdAt' | 'updatedAt
 export const basicNoteType: Omit<NoteType, 'userId' | 'createdAt' | 'updatedAt'> = {
   id: 'basic-note',
   name: 'Basic Note',
-  description: 'A simple note with title and content',
+  description: 'A simple note with just content',
   icon: 'file-text',
   isSystem: true,
   fields: [
-    {
-      id: 'title',
-      name: 'title',
-      label: 'Title',
-      type: 'text',
-      placeholder: 'Note title',
-      required: true,
-    },
     {
       id: 'content',
       name: 'content',
