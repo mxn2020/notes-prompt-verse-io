@@ -1,7 +1,7 @@
-const cookie = require('cookie');
-const jwt = require('jsonwebtoken');
-const { Redis } = require('@upstash/redis');
-const { nanoid } = require('nanoid');
+import cookie from 'cookie';
+import jwt from 'jsonwebtoken';
+import { Redis } from '@upstash/redis';
+import { nanoid } from 'nanoid';
 
 // Initialize Redis client
 const redis = new Redis({
@@ -570,7 +570,7 @@ const deleteNoteHandler = async (event) => {
 };
 
 // Main handler
-exports.handler = async (event) => {
+export const handler = async (event) => {
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': process.env.URL || 'http://localhost:8888',

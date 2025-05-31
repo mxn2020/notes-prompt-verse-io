@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with default configuration
 export const api = axios.create({
-  baseURL: '/.netlify/functions',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -33,7 +33,7 @@ api.interceptors.response.use(
 
       try {
         // Try to refresh the token
-        await axios.get('/.netlify/functions/auth/refresh', {
+        await axios.get('/api/auth/refresh', {
           withCredentials: true,
         });
 

@@ -17,6 +17,7 @@ const Login: React.FC = () => {
     handleSubmit,
     formState: { errors },
   } = useForm({
+    mode: 'onSubmit',
     defaultValues: {
       email: '',
       password: '',

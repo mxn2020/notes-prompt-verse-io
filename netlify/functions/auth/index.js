@@ -1,6 +1,6 @@
-const cookie = require('cookie');
-const jwt = require('jsonwebtoken');
-const { Redis } = require('@upstash/redis');
+import cookie from 'cookie';
+import jwt from 'jsonwebtoken';
+import { Redis } from '@upstash/redis';
 
 // Initialize Redis client
 const redis = new Redis({
@@ -422,7 +422,7 @@ const updateUserHandler = async (event) => {
 };
 
 // Main handler
-exports.handler = async (event) => {
+export const handler = async (event) => {
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': process.env.URL || 'http://localhost:8888',
@@ -452,8 +452,28 @@ exports.handler = async (event) => {
   };
   
   try {
-    // Route handling
-    const path = event.path.replace('/auth', '').replace('/.netlify/functions/auth', '');
+    // Debug logging
+    console.log('Event path:', event.path);
+    console.log('Event rawUrl:', event.rawUrl);
+    console.log('Event headers:', event.headers);
+    
+    // Route handling - extract the endpoint from the path
+    let path = event.path;
+    
+    // Handle different path formats
+    if (path.includes('/.netlify/functions/auth')) {
+      path = path.replace('/.netlify/functions/auth', '');
+    }
+    if (path.includes('/api/auth')) {
+      path = path.replace('/api/auth', '');
+    }
+    
+    // Ensure path starts with /
+    if (!path.startsWith('/')) {
+      path = '/' + path;
+    }
+    
+    console.log('Processed path:', path);
     
     if (event.httpMethod === 'POST' && path === '/register') {
       return addCorsHeaders(await registerHandler(event));

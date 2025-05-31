@@ -17,6 +17,7 @@ const Register: React.FC = () => {
     handleSubmit,
     formState: { errors },
   } = useForm({
+    mode: 'onSubmit',
     defaultValues: {
       name: '',
       email: '',

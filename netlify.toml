@@ -1,0 +1,59 @@
+[build]
+  publish = "dist"
+  command = "npm run build"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Health check endpoint
+[[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/health"
+  status = 200
+
+# Auth endpoints
+[[redirects]]
+  from = "/api/auth/*"
+  to = "/.netlify/functions/auth"
+  status = 200
+
+# Notes endpoints
+[[redirects]]
+  from = "/api/notes/*"
+  to = "/.netlify/functions/notes"
+  status = 200
+
+# SPA fallback - this must be last
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Cache static assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Development environment variables
+[context.dev.environment]
+  NODE_ENV = "development"
+
+# Production environment variables
+[context.production.environment]
+  NODE_ENV = "production"
+
+# Branch deploy environment
+[context.branch-deploy.environment]
+  NODE_ENV = "staging"
