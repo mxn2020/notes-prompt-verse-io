@@ -1,4 +1,4 @@
-import React, { createContext, useReducer, useEffect, useState } from 'react';
+import React, { createContext, useReducer, useEffect, ReactNode } from 'react';
 import { User, AuthState, LoginCredentials, RegisterCredentials } from '../types';
 import { api } from '../utils/api';
 
@@ -7,6 +7,7 @@ interface AuthContextType extends AuthState {
   register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<void>;
+  refreshAuth: () => Promise<void>;
 }
 
 const initialState: AuthState = {
@@ -21,7 +22,9 @@ type AuthAction =
   | { type: 'AUTH_SUCCESS'; payload: User }
   | { type: 'AUTH_FAILURE'; payload: string }
   | { type: 'AUTH_LOGOUT' }
-  | { type: 'AUTH_UPDATE'; payload: User };
+  | { type: 'AUTH_UPDATE'; payload: User }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'CLEAR_ERROR' };
 
 const authReducer = (state: AuthState, action: AuthAction): AuthState => {
   switch (action.type) {
@@ -56,6 +59,16 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         ...state,
         user: action.payload,
       };
+    case 'SET_LOADING':
+      return {
+        ...state,
+        isLoading: action.payload,
+      };
+    case 'CLEAR_ERROR':
+      return {
+        ...state,
+        error: null,
+      };
     default:
       return state;
   }
@@ -67,76 +80,100 @@ export const AuthContext = createContext<AuthContextType>({
   register: async () => {},
   logout: async () => {},
   updateUser: async () => {},
+  refreshAuth: async () => {},
 });
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(authReducer, initialState);
-  const [initialized, setInitialized] = useState(false);
+interface AuthProviderProps {
+  children: ReactNode;
+}
 
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [state, dispatch] = useReducer(authReducer, initialState);
+
+  // Initial auth check
   useEffect(() => {
+    let mounted = true;
+
     const checkAuthStatus = async () => {
       try {
-        dispatch({ type: 'AUTH_START' });
+        dispatch({ type: 'SET_LOADING', payload: true });
+        
         const response = await api.get('/auth/me');
         
-        if (response.data.success) {
+        if (!mounted) return;
+        
+        if (response.data.success && response.data.data) {
           dispatch({ type: 'AUTH_SUCCESS', payload: response.data.data });
         } else {
-          dispatch({ type: 'AUTH_FAILURE', payload: 'Session expired' });
+          dispatch({ type: 'AUTH_FAILURE', payload: 'Not authenticated' });
         }
-      } catch (error) {
+      } catch (error: any) {
+        if (!mounted) return;
+        
+        // Only log non-401 errors as they are expected when not authenticated
+        if (error.response?.status !== 401) {
+          console.error('Auth check error:', error);
+        }
         dispatch({ type: 'AUTH_FAILURE', payload: 'Not authenticated' });
-      } finally {
-        setInitialized(true);
       }
     };
 
     checkAuthStatus();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const login = async (credentials: LoginCredentials) => {
     try {
       dispatch({ type: 'AUTH_START' });
+      dispatch({ type: 'CLEAR_ERROR' });
+      
       const response = await api.post('/auth/login', credentials);
       
-      if (response.data.success) {
+      if (response.data.success && response.data.data) {
         dispatch({ type: 'AUTH_SUCCESS', payload: response.data.data });
       } else {
-        dispatch({ type: 'AUTH_FAILURE', payload: response.data.error || 'Login failed' });
+        const errorMessage = response.data.error || 'Login failed';
+        dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
+        throw new Error(errorMessage);
       }
     } catch (error: any) {
-      dispatch({ 
-        type: 'AUTH_FAILURE', 
-        payload: error.response?.data?.error || 'Login failed. Please try again.'
-      });
+      const errorMessage = error.response?.data?.error || error.message || 'Login failed. Please try again.';
+      dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
+      throw new Error(errorMessage);
     }
   };
 
   const register = async (credentials: RegisterCredentials) => {
     try {
       dispatch({ type: 'AUTH_START' });
+      dispatch({ type: 'CLEAR_ERROR' });
+      
       const response = await api.post('/auth/register', credentials);
       
-      if (response.data.success) {
+      if (response.data.success && response.data.data) {
         dispatch({ type: 'AUTH_SUCCESS', payload: response.data.data });
       } else {
-        dispatch({ type: 'AUTH_FAILURE', payload: response.data.error || 'Registration failed' });
+        const errorMessage = response.data.error || 'Registration failed';
+        dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
+        throw new Error(errorMessage);
       }
     } catch (error: any) {
-      dispatch({ 
-        type: 'AUTH_FAILURE', 
-        payload: error.response?.data?.error || 'Registration failed. Please try again.'
-      });
+      const errorMessage = error.response?.data?.error || error.message || 'Registration failed. Please try again.';
+      dispatch({ type: 'AUTH_FAILURE', payload: errorMessage });
+      throw new Error(errorMessage);
     }
   };
 
   const logout = async () => {
     try {
       await api.post('/auth/logout');
-      dispatch({ type: 'AUTH_LOGOUT' });
     } catch (error) {
       console.error('Logout error:', error);
-      // Still logout on client side even if API fails
+      // Continue with logout even if API call fails
+    } finally {
       dispatch({ type: 'AUTH_LOGOUT' });
     }
   };
@@ -145,7 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const response = await api.put('/auth/user', userData);
       
-      if (response.data.success && state.user) {
+      if (response.data.success && response.data.data && state.user) {
         dispatch({ 
           type: 'AUTH_UPDATE', 
           payload: { ...state.user, ...response.data.data }
@@ -153,15 +190,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error('Update user error:', error);
+      throw error;
     }
   };
 
-  if (!initialized) {
-    return null; // Don't render anything until we've checked auth status
-  }
+  const refreshAuth = async () => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      
+      const response = await api.get('/auth/me');
+      
+      if (response.data.success && response.data.data) {
+        dispatch({ type: 'AUTH_SUCCESS', payload: response.data.data });
+      } else {
+        dispatch({ type: 'AUTH_FAILURE', payload: 'Authentication failed' });
+      }
+    } catch (error) {
+      dispatch({ type: 'AUTH_FAILURE', payload: 'Authentication failed' });
+      throw error;
+    }
+  };
 
   return (
-    <AuthContext.Provider value={{ ...state, login, register, logout, updateUser }}>
+    <AuthContext.Provider 
+      value={{ 
+        ...state, 
+        login, 
+        register, 
+        logout, 
+        updateUser, 
+        refreshAuth 
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

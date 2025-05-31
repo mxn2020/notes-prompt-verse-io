@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ChevronLeft, Edit, Trash, Copy, Pin, Share } from 'lucide-react';
-import Button from '../components/ui/Button';
-import NoteThread from '../components/notes/NoteThread';
+import { Button } from '@/components/ui/button';
+import NoteThread from '@/components/notes/NoteThread';
 import { NoteThread as NoteThreadType } from '../types';
 import { api } from '../utils/api';
-import { useToast } from '../hooks/useToast';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { toast } from 'sonner';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const NoteDetail: React.FC = () => {
   const { noteId } = useParams<{ noteId: string }>();
   const navigate = useNavigate();
-  const { addToast } = useToast();
   const [noteThread, setNoteThread] = useState<NoteThreadType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -26,18 +25,12 @@ const NoteDetail: React.FC = () => {
         if (response.data.success) {
           setNoteThread(response.data.data);
         } else {
-          addToast({
-            type: 'error',
-            message: response.data.error || 'Failed to fetch note',
-          });
+          toast.error(response.data.error || 'Failed to fetch note');
           navigate('/');
         }
       } catch (error) {
         console.error('Error fetching note:', error);
-        addToast({
-          type: 'error',
-          message: 'Failed to fetch note. Please try again.',
-        });
+        toast.error('Failed to fetch note. Please try again.');
         navigate('/');
       } finally {
         setIsLoading(false);
@@ -45,7 +38,7 @@ const NoteDetail: React.FC = () => {
     };
 
     fetchNoteThread();
-  }, [noteId, navigate, addToast]);
+  }, [noteId, navigate]);
 
   const handleAddReply = async (parentId: string, content: string) => {
     if (!noteThread) return;
@@ -67,22 +60,13 @@ const NoteDetail: React.FC = () => {
           replies: [...noteThread.replies, response.data.data],
         });
         
-        addToast({
-          type: 'success',
-          message: 'Reply added successfully',
-        });
+        toast.success('Reply added successfully');
       } else {
-        addToast({
-          type: 'error',
-          message: response.data.error || 'Failed to add reply',
-        });
+        toast.error(response.data.error || 'Failed to add reply');
       }
     } catch (error) {
       console.error('Error adding reply:', error);
-      addToast({
-        type: 'error',
-        message: 'Failed to add reply. Please try again.',
-      });
+      toast.error('Failed to add reply. Please try again.');
     }
   };
 
@@ -161,50 +145,50 @@ const NoteDetail: React.FC = () => {
             variant="ghost"
             size="sm"
             onClick={() => navigate(-1)}
-            icon={<ChevronLeft className="h-4 w-4" />}
           >
+            <ChevronLeft className="h-4 w-4" />
             Back
           </Button>
-          <span className="mx-2 text-neutral-300">|</span>
-          <h1 className="text-xl font-semibold text-neutral-900">Note Details</h1>
+          <span className="mx-2 text-gray-300">|</span>
+          <h1 className="text-xl font-semibold text-gray-900">Note Details</h1>
         </div>
 
         <div className="flex mt-4 sm:mt-0 space-x-2">
           <Button
             variant="outline"
             size="sm"
-            icon={<Pin className="h-4 w-4" />}
           >
+            <Pin className="h-4 w-4" />
             Pin
           </Button>
           <Button
             variant="outline"
             size="sm"
-            icon={<Copy className="h-4 w-4" />}
           >
+            <Copy className="h-4 w-4" />
             Duplicate
           </Button>
           <Button
             variant="outline"
             size="sm"
-            icon={<Share className="h-4 w-4" />}
           >
+            <Share className="h-4 w-4" />
             Share
           </Button>
           <Link to={`/notes/${noteId}/edit`}>
             <Button
               variant="outline"
               size="sm"
-              icon={<Edit className="h-4 w-4" />}
             >
+              <Edit className="h-4 w-4" />
               Edit
             </Button>
           </Link>
           <Button
-            variant="danger"
+            variant="destructive"
             size="sm"
-            icon={<Trash className="h-4 w-4" />}
           >
+            <Trash className="h-4 w-4" />
             Delete
           </Button>
         </div>

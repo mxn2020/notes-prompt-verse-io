@@ -17,7 +17,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onTogglePin }) => {
   
   // Define background color based on note color
   let bgColorClass = 'bg-white';
-  let borderColorClass = 'border-neutral-200';
+  let borderColorClass = 'border-gray-200';
   
   if (note.color) {
     // This mapping would be more comprehensive in a real app
@@ -46,13 +46,13 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onTogglePin }) => {
       <div className="p-4">
         {/* Title and pin button */}
         <div className="flex justify-between items-start mb-2">
-          <Link to={`/notes/${note.id}`} className="text-lg font-medium text-neutral-900 hover:text-primary-600">
+          <Link to={`/notes/${note.id}`} className="text-lg font-medium text-gray-900 hover:text-primary-600">
             {note.title}
           </Link>
           {onTogglePin && (
             <button
               onClick={() => onTogglePin(note.id)}
-              className={`p-1 rounded-full hover:bg-neutral-100 ${note.isPinned ? 'text-primary-600' : 'text-neutral-400'}`}
+              className={`p-1 rounded-full hover:bg-gray-100 ${note.isPinned ? 'text-primary-600' : 'text-gray-400'}`}
             >
               <Pin className="h-4 w-4" />
             </button>
@@ -60,8 +60,8 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onTogglePin }) => {
         </div>
         
         {/* Note type and date */}
-        <div className="flex items-center text-xs text-neutral-500 mb-3">
-          <span className="font-medium bg-neutral-100 px-2 py-0.5 rounded-full">
+        <div className="flex items-center text-xs text-gray-500 mb-3">
+          <span className="font-medium bg-gray-100 px-2 py-0.5 rounded-full">
             {note.type}
           </span>
           <span className="mx-2">•</span>
@@ -69,7 +69,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onTogglePin }) => {
         </div>
         
         {/* Note content preview */}
-        <div className="text-sm text-neutral-700 mb-3 line-clamp-3">
+        <div className="text-sm text-gray-700 mb-3 line-clamp-3">
           {note.content}
         </div>
         
@@ -85,16 +85,16 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onTogglePin }) => {
         )}
         
         {/* Footer with actions */}
-        <div className="flex justify-between items-center pt-2 mt-2 border-t border-neutral-200">
+        <div className="flex justify-between items-center pt-2 mt-2 border-t border-gray-200">
           <div className="flex space-x-2">
             {hasReplies && (
-              <div className="flex items-center text-xs text-neutral-500">
+              <div className="flex items-center text-xs text-gray-500">
                 <MessageSquare className="h-3 w-3 mr-1" />
                 <span>Thread</span>
               </div>
             )}
             {note.category && (
-              <div className="flex items-center text-xs text-neutral-500">
+              <div className="flex items-center text-xs text-gray-500">
                 <span className="mr-1">in</span>
                 <span className="font-medium">{note.category}</span>
               </div>
@@ -103,7 +103,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onTogglePin }) => {
           
           <Link 
             to={`/notes/${note.id}/edit`}
-            className="p-1 rounded text-neutral-400 hover:text-primary-600 hover:bg-neutral-100"
+            className="p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-gray-100"
           >
             <Edit className="h-4 w-4" />
           </Link>

@@ -14,7 +14,7 @@ const NoteTypeSelector: React.FC<NoteTypeSelectorProps> = ({ noteTypes, onSelect
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-medium text-neutral-900">Choose Note Type</h2>
+        <h2 className="text-lg font-medium text-gray-900">Choose Note Type</h2>
         <button
           onClick={() => navigate('/note-types')}
           className="text-primary-600 text-sm font-medium hover:text-primary-700 flex items-center"
@@ -29,7 +29,7 @@ const NoteTypeSelector: React.FC<NoteTypeSelectorProps> = ({ noteTypes, onSelect
           <div
             key={noteType.id}
             onClick={() => onSelect(noteType)}
-            className="p-4 border border-neutral-200 rounded-lg cursor-pointer hover:border-primary-500 hover:shadow-sm transition-all duration-200 bg-white"
+            className="p-4 border border-gray-200 rounded-lg cursor-pointer hover:border-primary-500 hover:shadow-sm transition-all duration-200 bg-white"
           >
             <div className="flex items-start mb-2">
               <div className="p-2 rounded-md bg-primary-50 text-primary-600 mr-3">
@@ -37,8 +37,8 @@ const NoteTypeSelector: React.FC<NoteTypeSelectorProps> = ({ noteTypes, onSelect
                 <FilePlus className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="font-medium text-neutral-900">{noteType.name}</h3>
-                <p className="text-xs text-neutral-500">{noteType.description}</p>
+                <h3 className="font-medium text-gray-900">{noteType.name}</h3>
+                <p className="text-xs text-gray-500">{noteType.description}</p>
               </div>
             </div>
           </div>
