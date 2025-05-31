@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Filter, Grid3X3, List } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Button } from '../components/ui/button';
-import NoteCard from '../components/notes/NoteCard';
-import { Note } from '../types';
-import { api } from '../utils/api';
+import { Button } from '@/components/ui/button';
+import NoteCard from '@/components/notes/NoteCard';
+import { Note } from '@/types';
+import { api } from '@/utils/api';
 import { toast } from 'sonner';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 const Dashboard: React.FC = () => {
   const [notes, setNotes] = useState<Note[]>([]);
