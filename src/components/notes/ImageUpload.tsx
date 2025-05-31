@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { Upload, X } from 'lucide-react';
 import { NoteImage } from '../../types';
-import Button from '../ui/Button';
+import Button from '../ui/button';
 
 interface ImageUploadProps {
   images: NoteImage[];
