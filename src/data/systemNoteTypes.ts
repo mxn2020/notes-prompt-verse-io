@@ -31,7 +31,7 @@ export const systemNoteTypes: Omit<NoteType, 'userId' | 'createdAt' | 'updatedAt
         name: 'mood',
         label: 'Mood',
         type: 'select',
-        options: ['Excited', 'Productive', 'Neutral', 'Frustrated', 'Exhausted'],
+        options: ['Excited', 'Productive', 'gray', 'Frustrated', 'Exhausted'],
         defaultValue: 'Productive',
       },
       {

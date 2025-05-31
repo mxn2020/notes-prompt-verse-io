@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Settings as SettingsIcon, Tag, FolderOpen, Layout, Bell, Shield, Moon } from 'lucide-react';
-import Button from '../components/ui/Button';
+import { User, Tag, FolderOpen, Layout, Bell, Shield, Edit, Trash, X } from 'lucide-react';
+import { Button } from '../components/ui/button';
 import { useAuth } from '../hooks/useAuth';
-import { useToast } from '../hooks/useToast';
+import { toast } from 'sonner';
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
-  const { user, updateUser, logout } = useAuth();
-  const { addToast } = useToast();
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
 
   const handleLogout = async () => {
@@ -17,10 +16,7 @@ const Settings: React.FC = () => {
       navigate('/login');
     } catch (error) {
       console.error('Logout error:', error);
-      addToast({
-        type: 'error',
-        message: 'Failed to log out. Please try again.',
-      });
+      toast.error('Failed to log out. Please try again.');
     }
   };
 
@@ -36,14 +32,14 @@ const Settings: React.FC = () => {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-neutral-900">Settings</h1>
-        <p className="text-neutral-500">Manage your account and preferences</p>
+        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        <p className="text-gray-500">Manage your account and preferences</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="sm:flex">
           {/* Tab navigation */}
-          <div className="sm:w-64 border-r border-neutral-200">
+          <div className="sm:w-64 border-r border-gray-200">
             <nav className="p-4 sm:p-0">
               <div className="flex sm:flex-col space-x-2 sm:space-x-0 overflow-x-auto sm:overflow-visible pb-2 sm:pb-0">
                 {tabs.map((tab) => (
@@ -53,7 +49,7 @@ const Settings: React.FC = () => {
                     className={`flex items-center px-4 py-3 text-sm font-medium rounded-md sm:rounded-none sm:border-l-4 ${
                       activeTab === tab.id
                         ? 'bg-primary-50 text-primary-700 sm:border-primary-600 sm:bg-transparent'
-                        : 'text-neutral-600 hover:bg-neutral-50 sm:border-transparent'
+                        : 'text-gray-600 hover:bg-gray-50 sm:border-transparent'
                     }`}
                   >
                     <span className="mr-3">{tab.icon}</span>
@@ -68,10 +64,10 @@ const Settings: React.FC = () => {
           <div className="flex-1 p-6">
             {activeTab === 'profile' && (
               <div>
-                <h2 className="text-xl font-medium text-neutral-900 mb-6">Profile Settings</h2>
+                <h2 className="text-xl font-medium text-gray-900 mb-6">Profile Settings</h2>
                 
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Full Name
                   </label>
                   <input
@@ -82,7 +78,7 @@ const Settings: React.FC = () => {
                 </div>
                 
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Email Address
                   </label>
                   <input
@@ -91,7 +87,7 @@ const Settings: React.FC = () => {
                     defaultValue={user?.email || ''}
                     disabled
                   />
-                  <p className="mt-1 text-sm text-neutral-500">
+                  <p className="mt-1 text-sm text-gray-500">
                     Email address cannot be changed
                   </p>
                 </div>
@@ -102,10 +98,10 @@ const Settings: React.FC = () => {
 
             {activeTab === 'appearance' && (
               <div>
-                <h2 className="text-xl font-medium text-neutral-900 mb-6">Appearance Settings</h2>
+                <h2 className="text-xl font-medium text-gray-900 mb-6">Appearance Settings</h2>
                 
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Theme
                   </label>
                   <div className="flex space-x-4 mt-2">
@@ -117,7 +113,7 @@ const Settings: React.FC = () => {
                         className="radio"
                         defaultChecked
                       />
-                      <label htmlFor="theme-light" className="ml-2 text-sm text-neutral-700">
+                      <label htmlFor="theme-light" className="ml-2 text-sm text-gray-700">
                         Light
                       </label>
                     </div>
@@ -128,7 +124,7 @@ const Settings: React.FC = () => {
                         type="radio"
                         className="radio"
                       />
-                      <label htmlFor="theme-dark" className="ml-2 text-sm text-neutral-700">
+                      <label htmlFor="theme-dark" className="ml-2 text-sm text-gray-700">
                         Dark
                       </label>
                     </div>
@@ -139,7 +135,7 @@ const Settings: React.FC = () => {
                         type="radio"
                         className="radio"
                       />
-                      <label htmlFor="theme-system" className="ml-2 text-sm text-neutral-700">
+                      <label htmlFor="theme-system" className="ml-2 text-sm text-gray-700">
                         System
                       </label>
                     </div>
@@ -147,7 +143,7 @@ const Settings: React.FC = () => {
                 </div>
                 
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Default Note Type
                   </label>
                   <select className="select">
@@ -159,7 +155,7 @@ const Settings: React.FC = () => {
                 </div>
                 
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Sidebar Settings
                   </label>
                   <div className="mt-2">
@@ -170,7 +166,7 @@ const Settings: React.FC = () => {
                         type="checkbox"
                         className="checkbox"
                       />
-                      <label htmlFor="sidebar-collapsed" className="ml-2 text-sm text-neutral-700">
+                      <label htmlFor="sidebar-collapsed" className="ml-2 text-sm text-gray-700">
                         Start with sidebar collapsed
                       </label>
                     </div>
@@ -183,13 +179,13 @@ const Settings: React.FC = () => {
 
             {activeTab === 'account' && (
               <div>
-                <h2 className="text-xl font-medium text-neutral-900 mb-6">Account Settings</h2>
+                <h2 className="text-xl font-medium text-gray-900 mb-6">Account Settings</h2>
                 
                 <div className="mb-6">
-                  <h3 className="text-lg font-medium text-neutral-900 mb-2">Change Password</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Change Password</h3>
                   
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-neutral-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Current Password
                     </label>
                     <input
@@ -199,7 +195,7 @@ const Settings: React.FC = () => {
                   </div>
                   
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-neutral-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       New Password
                     </label>
                     <input
@@ -209,7 +205,7 @@ const Settings: React.FC = () => {
                   </div>
                   
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-neutral-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Confirm New Password
                     </label>
                     <input
@@ -221,19 +217,19 @@ const Settings: React.FC = () => {
                   <Button>Update Password</Button>
                 </div>
                 
-                <hr className="my-8 border-neutral-200" />
+                <hr className="my-8 border-gray-200" />
                 
                 <div>
                   <h3 className="text-lg font-medium text-error-700 mb-2">Danger Zone</h3>
-                  <p className="text-sm text-neutral-500 mb-4">
+                  <p className="text-sm text-gray-500 mb-4">
                     Once you delete your account, there is no going back. Please be certain.
                   </p>
                   
                   <div className="flex space-x-4">
-                    <Button variant="danger" onClick={handleLogout}>
+                    <Button variant="destructive" onClick={handleLogout}>
                       Sign Out
                     </Button>
-                    <Button variant="danger">
+                    <Button variant="destructive">
                       Delete Account
                     </Button>
                   </div>
@@ -243,49 +239,49 @@ const Settings: React.FC = () => {
 
             {activeTab === 'categories' && (
               <div>
-                <h2 className="text-xl font-medium text-neutral-900 mb-6">Categories</h2>
+                <h2 className="text-xl font-medium text-gray-900 mb-6">Categories</h2>
                 
                 <div className="mb-6 space-y-2">
-                  <div className="flex items-center justify-between p-3 border border-neutral-200 rounded-md">
+                  <div className="flex items-center justify-between p-3 border border-gray-200 rounded-md">
                     <div className="flex items-center">
                       <div className="w-3 h-3 rounded-full bg-primary-500 mr-3"></div>
                       <span>Hackathon</span>
                     </div>
                     <div className="flex space-x-2">
-                      <button className="p-1 text-neutral-400 hover:text-neutral-700">
+                      <button className="p-1 text-gray-400 hover:text-gray-700">
                         <Edit className="h-4 w-4" />
                       </button>
-                      <button className="p-1 text-neutral-400 hover:text-neutral-700">
+                      <button className="p-1 text-gray-400 hover:text-gray-700">
                         <Trash className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between p-3 border border-neutral-200 rounded-md">
+                  <div className="flex items-center justify-between p-3 border border-gray-200 rounded-md">
                     <div className="flex items-center">
                       <div className="w-3 h-3 rounded-full bg-secondary-500 mr-3"></div>
                       <span>Product Ideas</span>
                     </div>
                     <div className="flex space-x-2">
-                      <button className="p-1 text-neutral-400 hover:text-neutral-700">
+                      <button className="p-1 text-gray-400 hover:text-gray-700">
                         <Edit className="h-4 w-4" />
                       </button>
-                      <button className="p-1 text-neutral-400 hover:text-neutral-700">
+                      <button className="p-1 text-gray-400 hover:text-gray-700">
                         <Trash className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between p-3 border border-neutral-200 rounded-md">
+                  <div className="flex items-center justify-between p-3 border border-gray-200 rounded-md">
                     <div className="flex items-center">
                       <div className="w-3 h-3 rounded-full bg-accent-500 mr-3"></div>
                       <span>Learning</span>
                     </div>
                     <div className="flex space-x-2">
-                      <button className="p-1 text-neutral-400 hover:text-neutral-700">
+                      <button className="p-1 text-gray-400 hover:text-gray-700">
                         <Edit className="h-4 w-4" />
                       </button>
-                      <button className="p-1 text-neutral-400 hover:text-neutral-700">
+                      <button className="p-1 text-gray-400 hover:text-gray-700">
                         <Trash className="h-4 w-4" />
                       </button>
                     </div>
@@ -294,7 +290,7 @@ const Settings: React.FC = () => {
                 
                 <div className="mt-4">
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-neutral-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       New Category
                     </label>
                     <div className="flex space-x-2">
@@ -312,7 +308,7 @@ const Settings: React.FC = () => {
 
             {activeTab === 'tags' && (
               <div>
-                <h2 className="text-xl font-medium text-neutral-900 mb-6">Tags</h2>
+                <h2 className="text-xl font-medium text-gray-900 mb-6">Tags</h2>
                 
                 <div className="mb-6 flex flex-wrap gap-2">
                   <div className="flex items-center bg-primary-50 px-3 py-2 rounded-full">
@@ -346,7 +342,7 @@ const Settings: React.FC = () => {
                 
                 <div className="mt-4">
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-neutral-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       New Tag
                     </label>
                     <div className="flex space-x-2">

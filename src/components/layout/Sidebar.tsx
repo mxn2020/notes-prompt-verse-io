@@ -37,7 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   };
 
   const sidebarClasses = twMerge(
-    'fixed h-full bg-white border-r border-neutral-200 transition-all duration-300 ease-in-out z-20',
+    'fixed h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out z-20',
     isOpen ? 'w-64' : 'w-0 -translate-x-full md:translate-x-0 md:w-16'
   );
 
@@ -56,7 +56,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                   'flex items-center justify-center p-2 rounded-md',
                   isActive
                     ? 'bg-primary-50 text-primary-600'
-                    : 'text-neutral-700 hover:bg-neutral-100 hover:text-primary-600'
+                    : 'text-gray-700 hover:bg-gray-100 hover:text-primary-600'
                 )
               }
               title="Dashboard"
@@ -65,7 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
             </NavLink>
             <NavLink
               to="/notes/new"
-              className="flex items-center justify-center p-2 rounded-md text-neutral-700 hover:bg-neutral-100 hover:text-primary-600"
+              className="flex items-center justify-center p-2 rounded-md text-gray-700 hover:bg-gray-100 hover:text-primary-600"
               title="New Note"
             >
               <Plus className="h-6 w-6" />
@@ -77,7 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                   'flex items-center justify-center p-2 rounded-md',
                   isActive
                     ? 'bg-primary-50 text-primary-600'
-                    : 'text-neutral-700 hover:bg-neutral-100 hover:text-primary-600'
+                    : 'text-gray-700 hover:bg-gray-100 hover:text-primary-600'
                 )
               }
               title="Note Types"
@@ -91,7 +91,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                   'flex items-center justify-center p-2 rounded-md',
                   isActive
                     ? 'bg-primary-50 text-primary-600'
-                    : 'text-neutral-700 hover:bg-neutral-100 hover:text-primary-600'
+                    : 'text-gray-700 hover:bg-gray-100 hover:text-primary-600'
                 )
               }
               title="Settings"
@@ -119,7 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                 'flex items-center px-2 py-2 rounded-md font-medium',
                 isActive
                   ? 'bg-primary-50 text-primary-600'
-                  : 'text-neutral-700 hover:bg-neutral-100 hover:text-primary-600'
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-primary-600'
               )
             }
           >
@@ -128,7 +128,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           </NavLink>
           <NavLink
             to="/notes/new"
-            className="flex items-center px-2 py-2 rounded-md font-medium text-neutral-700 hover:bg-neutral-100 hover:text-primary-600"
+            className="flex items-center px-2 py-2 rounded-md font-medium text-gray-700 hover:bg-gray-100 hover:text-primary-600"
           >
             <Plus className="h-5 w-5 mr-2" />
             New Note
@@ -140,7 +140,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                 'flex items-center px-2 py-2 rounded-md font-medium',
                 isActive
                   ? 'bg-primary-50 text-primary-600'
-                  : 'text-neutral-700 hover:bg-neutral-100 hover:text-primary-600'
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-primary-600'
               )
             }
           >
@@ -149,10 +149,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           </NavLink>
         </div>
 
-        <div className="mt-6 pt-6 border-t border-neutral-200">
+        <div className="mt-6 pt-6 border-t border-gray-200">
           <button
             onClick={toggleCategories}
-            className="flex items-center justify-between w-full px-2 py-2 text-left text-sm font-medium text-neutral-700 hover:bg-neutral-100 hover:text-primary-600 rounded-md"
+            className="flex items-center justify-between w-full px-2 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-primary-600 rounded-md"
           >
             <div className="flex items-center">
               <FolderOpen className="h-5 w-5 mr-2" />
@@ -165,12 +165,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
             )}
           </button>
           {categoriesOpen && (
-            <div className="ml-2 pl-2 border-l border-neutral-200 mt-1 space-y-1">
+            <div className="ml-2 pl-2 border-l border-gray-200 mt-1 space-y-1">
               {categories.map((category) => (
                 <NavLink
                   key={category.id}
                   to={`/?category=${category.id}`}
-                  className="flex items-center px-2 py-1 text-sm text-neutral-700 hover:bg-neutral-100 hover:text-primary-600 rounded-md"
+                  className="flex items-center px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 hover:text-primary-600 rounded-md"
                 >
                   <div className={`w-2 h-2 rounded-full bg-${category.color} mr-2`} />
                   {category.name}
@@ -178,7 +178,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
               ))}
               <NavLink
                 to="/settings?tab=categories"
-                className="flex items-center px-2 py-1 text-sm text-neutral-500 hover:bg-neutral-100 hover:text-primary-600 rounded-md"
+                className="flex items-center px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 hover:text-primary-600 rounded-md"
               >
                 <Plus className="h-3 w-3 mr-2" />
                 Add category
@@ -190,7 +190,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
         <div className="mt-4">
           <button
             onClick={toggleTags}
-            className="flex items-center justify-between w-full px-2 py-2 text-left text-sm font-medium text-neutral-700 hover:bg-neutral-100 hover:text-primary-600 rounded-md"
+            className="flex items-center justify-between w-full px-2 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-primary-600 rounded-md"
           >
             <div className="flex items-center">
               <Tag className="h-5 w-5 mr-2" />
@@ -203,23 +203,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
             )}
           </button>
           {tagsOpen && (
-            <div className="ml-2 pl-2 border-l border-neutral-200 mt-1 space-y-1">
+            <div className="ml-2 pl-2 border-l border-gray-200 mt-1 space-y-1">
               {tags.map((tag) => (
                 <NavLink
                   key={tag.id}
                   to={`/?tag=${tag.name}`}
-                  className="flex items-center justify-between px-2 py-1 text-sm text-neutral-700 hover:bg-neutral-100 hover:text-primary-600 rounded-md"
+                  className="flex items-center justify-between px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 hover:text-primary-600 rounded-md"
                 >
                   <span className="flex items-center">
-                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-400 mr-2" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mr-2" />
                     #{tag.name}
                   </span>
-                  <span className="text-xs text-neutral-500">{tag.count}</span>
+                  <span className="text-xs text-gray-500">{tag.count}</span>
                 </NavLink>
               ))}
               <NavLink
                 to="/settings?tab=tags"
-                className="flex items-center px-2 py-1 text-sm text-neutral-500 hover:bg-neutral-100 hover:text-primary-600 rounded-md"
+                className="flex items-center px-2 py-1 text-sm text-gray-500 hover:bg-gray-100 hover:text-primary-600 rounded-md"
               >
                 <Plus className="h-3 w-3 mr-2" />
                 Add tag
@@ -228,7 +228,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           )}
         </div>
 
-        <div className="mt-6 pt-6 border-t border-neutral-200">
+        <div className="mt-6 pt-6 border-t border-gray-200">
           <NavLink
             to="/settings"
             className={({ isActive }) =>
@@ -236,7 +236,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                 'flex items-center px-2 py-2 rounded-md font-medium',
                 isActive
                   ? 'bg-primary-50 text-primary-600'
-                  : 'text-neutral-700 hover:bg-neutral-100 hover:text-primary-600'
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-primary-600'
               )
             }
           >

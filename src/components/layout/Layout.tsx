@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
-import ToastContainer from '../ui/ToastContainer';
 
 const Layout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -12,7 +11,7 @@ const Layout: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-neutral-50">
+    <div className="flex h-screen bg-gray-50">
       <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
       
       <div className="flex flex-col flex-1 overflow-hidden">
@@ -24,8 +23,6 @@ const Layout: React.FC = () => {
           </div>
         </main>
       </div>
-
-      <ToastContainer />
     </div>
   );
 };

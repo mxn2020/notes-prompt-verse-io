@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { NoteThread as NoteThreadType, Note } from '../../types';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import Button from '../ui/Button';
-import Textarea from '../ui/Textarea';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Reply, Plus } from 'lucide-react';
 
 dayjs.extend(relativeTime);
@@ -26,13 +26,13 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddReply }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-neutral-200 overflow-hidden">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
       {/* Root note */}
       <div className="p-6">
-        <h2 className="text-xl font-semibold text-neutral-900 mb-2">{thread.rootNote.title}</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">{thread.rootNote.title}</h2>
         
-        <div className="flex items-center text-sm text-neutral-500 mb-4">
-          <span className="font-medium bg-neutral-100 px-2 py-0.5 rounded-full">
+        <div className="flex items-center text-sm text-gray-500 mb-4">
+          <span className="font-medium bg-gray-100 px-2 py-0.5 rounded-full">
             {thread.rootNote.type}
           </span>
           <span className="mx-2">•</span>
@@ -46,7 +46,7 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddReply }) => {
         </div>
         
         <div className="prose prose-sm max-w-none mb-4">
-          <p className="text-neutral-700 whitespace-pre-wrap">{thread.rootNote.content}</p>
+          <p className="text-gray-700 whitespace-pre-wrap">{thread.rootNote.content}</p>
         </div>
         
         {thread.rootNote.tags && thread.rootNote.tags.length > 0 && (
@@ -62,8 +62,8 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddReply }) => {
       
       {/* Replies */}
       {thread.replies && thread.replies.length > 0 && (
-        <div className="border-t border-neutral-200 pt-4">
-          <h3 className="px-6 text-sm font-medium text-neutral-500 mb-2">
+        <div className="border-t border-gray-200 pt-4">
+          <h3 className="px-6 text-sm font-medium text-gray-500 mb-2">
             Replies ({thread.replies.length})
           </h3>
           
@@ -76,12 +76,12 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddReply }) => {
       )}
       
       {/* Add reply */}
-      <div className="border-t border-neutral-200 p-6 bg-neutral-50">
+      <div className="border-t border-gray-200 p-6 bg-gray-50">
         {isReplying ? (
           <div className="space-y-3">
             <Textarea
               value={replyContent}
-              onChange={(e) => setReplyContent(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReplyContent(e.target.value)}
               placeholder="Write your reply..."
             />
             <div className="flex justify-end space-x-2">
@@ -96,11 +96,11 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddReply }) => {
                 Cancel
               </Button>
               <Button
-                variant="primary"
+                variant="default"
                 size="sm"
                 onClick={handleSubmitReply}
-                icon={<Reply className="h-4 w-4" />}
               >
+                <Reply className="h-4 w-4" />
                 Submit Reply
               </Button>
             </div>
@@ -109,9 +109,9 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddReply }) => {
           <Button
             variant="outline"
             onClick={() => setIsReplying(true)}
-            icon={<Plus className="h-4 w-4" />}
-            fullWidth
+            className="w-full"
           >
+            <Plus className="h-4 w-4" />
             Add a reply
           </Button>
         )}
@@ -122,9 +122,9 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddReply }) => {
 
 const ReplyNote: React.FC<{ reply: Note }> = ({ reply }) => {
   return (
-    <div className="px-6 py-4 border-b last:border-b-0 border-neutral-100">
-      <div className="flex items-center text-xs text-neutral-500 mb-2">
-        <span className="font-medium bg-neutral-100 px-2 py-0.5 rounded-full">
+    <div className="px-6 py-4 border-b last:border-b-0 border-gray-100">
+      <div className="flex items-center text-xs text-gray-500 mb-2">
+        <span className="font-medium bg-gray-100 px-2 py-0.5 rounded-full">
           {reply.type}
         </span>
         <span className="mx-2">•</span>
@@ -132,7 +132,7 @@ const ReplyNote: React.FC<{ reply: Note }> = ({ reply }) => {
       </div>
       
       <div className="prose prose-sm max-w-none mb-2">
-        <p className="text-neutral-700 whitespace-pre-wrap">{reply.content}</p>
+        <p className="text-gray-700 whitespace-pre-wrap">{reply.content}</p>
       </div>
       
       {reply.tags && reply.tags.length > 0 && (
