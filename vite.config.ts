@@ -12,19 +12,16 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    host: true, // Allow external connections
-    strictPort: true, // Exit if port is already in use
+    host: true,
+    strictPort: true,
   },
   build: {
     outDir: 'dist',
     sourcemap: true,
   },
-  // Ensure compatibility with Netlify
   define: {
     global: 'globalThis',
   },
-  // Add assets configuration to handle HTML files properly
-  assetsInclude: ['**/*.html'],
   optimizeDeps: {
     include: ['react', 'react-dom']
   },

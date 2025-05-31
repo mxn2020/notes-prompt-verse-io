@@ -13,7 +13,6 @@
   autoLaunch = false
   targetPort = 5173
   port = 8888
-  # Remove custom command to let Netlify handle Vite properly
   
 # API routes to Netlify functions
 [[redirects]]
@@ -21,13 +20,11 @@
   to = "/.netlify/functions/:splat"
   status = 200
 
-# SPA fallback for production only - exclude common static file extensions
+# SPA fallback for React Router - must be last
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  # Only apply in production, not dev
-  conditions = {Country = ["!dev"]}
 
 [context.development.environment]
   NODE_ENV = "development"
