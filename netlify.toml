@@ -13,6 +13,8 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+  # Force fresh deployment
+  external_node_modules = ["bcryptjs"]
 
 [dev]
   # Let Netlify auto-detect the framework and proxy properly
