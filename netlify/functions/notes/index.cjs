@@ -367,6 +367,9 @@ const createNoteHandler = async (event) => {
       
       // If parent has a threadId, use that, otherwise use parentId as threadId
       threadId = parentNote.threadId || parentId;
+    } else {
+      // If this is a root note (no parentId), set threadId to its own id
+      threadId = noteId;
     }
     
     const noteData = {
@@ -393,8 +396,8 @@ const createNoteHandler = async (event) => {
     // Add to user's notes set
     await redis.sadd(`notes:user:${userId}`, noteId);
 
-    // If this is a sub note, add to thread's sub notes set
-    if (threadId) {
+    // If this is a sub note (has parentId), add to thread's sub notes set
+    if (parentId) {
       await redis.sadd(`notes:thread:${threadId}`, noteId);
     }
     

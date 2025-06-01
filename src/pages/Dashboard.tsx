@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Filter, Grid3X3, List } from 'lucide-react';
+import { Plus, Filter, Grid3X3, List, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import NoteCard from '@/components/notes/NoteCard';
@@ -13,6 +13,7 @@ const Dashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterOpen, setFilterOpen] = useState(false);
+  const [showSubNotes, setShowSubNotes] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -183,6 +184,17 @@ const Dashboard: React.FC = () => {
     setFilterOpen(!filterOpen);
   };
 
+  // Filter notes based on showSubNotes toggle
+  const getFilteredNotes = () => {
+    if (showSubNotes) {
+      return notes; // Show all notes including subnotes
+    } else {
+      return notes.filter(note => !note.parentId); // Only show root notes (no parentId)
+    }
+  };
+
+  const filteredNotes = getFilteredNotes();
+
   // If loading, show a loading spinner
   if (isLoading) {
     return (
@@ -207,6 +219,14 @@ const Dashboard: React.FC = () => {
           >
             <Filter className="h-4 w-4" />
             Filter
+          </Button>
+          
+          <Button
+            variant={showSubNotes ? "default" : "outline"}
+            onClick={() => setShowSubNotes(!showSubNotes)}
+          >
+            <MessageSquare className="h-4 w-4" />
+            {showSubNotes ? 'Hide Sub Notes' : 'Show Sub Notes'}
           </Button>
           
           <div className="hidden sm:flex bg-gray-100 rounded-md p-1">
@@ -302,7 +322,7 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Pinned notes section */}
-      {notes.some((note) => note.isPinned) && (
+      {filteredNotes.some((note) => note.isPinned) && (
         <div className="mb-8">
           <h2 className="text-lg font-medium text-gray-900 mb-4">
             Pinned Notes
@@ -312,7 +332,7 @@ const Dashboard: React.FC = () => {
               ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
               : 'grid-cols-1'
           }`}>
-            {notes
+            {filteredNotes
               .filter((note) => note.isPinned)
               .map((note) => (
                 <NoteCard
@@ -333,16 +353,19 @@ const Dashboard: React.FC = () => {
         <h2 className="text-lg font-medium text-gray-900 mb-4">
           Recent Notes
         </h2>
-        {notes.length === 0 ? (
+        {filteredNotes.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
             <div className="text-gray-400 mb-4">
               <Plus className="h-12 w-12 mx-auto" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No notes yet
+              {showSubNotes ? 'No notes yet' : 'No main notes yet'}
             </h3>
             <p className="text-gray-500 mb-4">
-              Create your first note to start tracking your progress
+              {showSubNotes 
+                ? 'Create your first note to start tracking your progress'
+                : 'Create your first note to start tracking your progress. Sub notes are hidden by default.'
+              }
             </p>
             <Link to="/notes/new">
               <Button>Create Note</Button>
@@ -354,7 +377,7 @@ const Dashboard: React.FC = () => {
               ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
               : 'grid-cols-1'
           }`}>
-            {notes
+            {filteredNotes
               .filter((note) => !note.isPinned)
               .map((note) => (
                 <NoteCard
