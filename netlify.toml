@@ -2,12 +2,13 @@
 
 [build]
   publish = "dist"
-  command = "pnpm build"
+  command = "npm run build"
   
 [build.environment]
-  # Ensure pnpm doesn't use frozen lockfile in CI
+  # Use Node.js 18 for better compatibility
+  NODE_VERSION = "18"
+  # Ensure npm doesn't use frozen lockfile in CI
   NPM_FLAGS = "--no-frozen-lockfile"
-  PNPM_FLAGS = "--no-frozen-lockfile"
 
 [functions]
   directory = "netlify/functions"

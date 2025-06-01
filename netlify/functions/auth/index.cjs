@@ -4,13 +4,26 @@ const bcrypt = require('bcrypt');
 const { Redis } = require('@upstash/redis');
 
 // Initialize Redis client
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || 'https://example-redis-url',
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || 'example-token',
-});
+let redis;
+try {
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    console.error('Missing Redis environment variables');
+    throw new Error('Redis configuration missing');
+  }
+  
+  redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+} catch (error) {
+  console.error('Redis initialization failed:', error);
+}
 
 // JWT secret (in production, use env variable)
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+if (!process.env.JWT_SECRET) {
+  console.error('Missing JWT_SECRET environment variable');
+}
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-for-development';
 const JWT_EXPIRY = '7d';
 const COOKIE_NAME = 'promptnotes_session';
 const SALT_ROUNDS = 12; // Number of salt rounds for bcrypt
@@ -606,6 +619,18 @@ const changePasswordHandler = async (event) => {
 
 // Main handler
 exports.handler = async (event) => {
+  // Early health check for configuration
+  if (!redis) {
+    console.error('Redis not initialized - check environment variables');
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        success: false,
+        error: 'Service configuration error - Redis not available',
+      }),
+    };
+  }
+
   // CORS headers
   const headers = {
     'Access-Control-Allow-Origin': process.env.URL || 'http://localhost:8888',
