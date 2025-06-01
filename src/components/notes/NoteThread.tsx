@@ -13,7 +13,7 @@ dayjs.extend(relativeTime);
 
 interface NoteThreadProps {
   thread: NoteThreadType;
-  onAddSubNote: (parentId: string, content: string, noteType: NoteType) => void;
+  onAddSubNote: (parentId: string, content: string | Record<string, any>, noteType: NoteType) => void;
 }
 
 const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
@@ -119,7 +119,7 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
                 noteType={selectedNoteType}
                 initialValues={{}}
                 onSubmit={(data) => {
-                  onAddSubNote(thread.id, data.content, selectedNoteType);
+                  onAddSubNote(thread.id, data, selectedNoteType);
                   setIsSubNoting(false);
                   setShowNoteForm(false);
                   setSelectedNoteType(basicNoteType as NoteType);

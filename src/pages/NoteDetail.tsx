@@ -40,18 +40,34 @@ const NoteDetail: React.FC = () => {
     fetchNoteThread();
   }, [noteId, navigate]);
 
-  const handleAddSubNote = async (parentId: string, content: string, noteType: NoteType) => {
+  const handleAddSubNote = async (parentId: string, content: string | Record<string, any>, noteType: NoteType) => {
     if (!noteThread) return;
 
     try {
-      const response = await api.post('/notes', {
+      // Handle different content types based on note type
+      const isBasicNote = noteType.id === 'basic-note';
+      const noteData = {
         parentId,
-        title: noteType.id === 'basic-note' ? 'Sub Note' : content.title || `Sub Note to ${noteThread.rootNote.title}`,
-        content: noteType.id === 'basic-note' ? content : content.content,
+        title: isBasicNote 
+          ? 'Sub Note' 
+          : (typeof content === 'object' && content.title) || `Sub Note to ${noteThread.rootNote.title}`,
+        content: isBasicNote 
+          ? content as string 
+          : (typeof content === 'object' && content.content) || '',
         type: noteType.id,
-        fields: noteType.id === 'basic-note' ? {} : content.fields || {},
+        fields: isBasicNote 
+          ? {} 
+          : (typeof content === 'object' ? { ...content } : {}),
         tags: [],
-      });
+      };
+
+      // Remove title and content from fields if they exist to avoid duplication
+      if (typeof content === 'object' && noteData.fields) {
+        delete noteData.fields.title;
+        delete noteData.fields.content;
+      }
+
+      const response = await api.post('/notes', noteData);
       
       if (response.data.success) {
         // Add the new sub note to the thread
