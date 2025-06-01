@@ -16,7 +16,7 @@ const NoteEditor: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedNoteType, setSelectedNoteType] = useState<NoteType | null>(null);
-  const [noteTypes, setNoteTypes] = useState<NoteType[]>([]);
+  const [availableNoteTypes, setAvailableNoteTypes] = useState<NoteType[]>([]); // Renamed from noteTypes to availableNoteTypes for clarity
   const [note, setNote] = useState<Note | null>(null);
 
   // Fetch note types and note (if editing)
@@ -25,10 +25,23 @@ const NoteEditor: React.FC = () => {
       try {
         setIsLoading(true);
         
-        // For demo purposes, use system note types
-        // In a real app, we'd fetch from API
-        const allNoteTypes = [basicNoteType, ...systemNoteTypes];
-        setNoteTypes(allNoteTypes as NoteType[]);
+        // Fetch custom note types from API
+        let customNoteTypes: NoteType[] = [];
+        try {
+          const customTypesResponse = await api.get('/note-types');
+          if (customTypesResponse.data.success) {
+            customNoteTypes = customTypesResponse.data.data;
+          } else {
+            console.error('Failed to fetch custom note types:', customTypesResponse.data.error);
+            toast.error('Failed to load custom note types.');
+          }
+        } catch (error) {
+          console.error('Error fetching custom note types:', error);
+          toast.error('An error occurred while loading custom note types.');
+        }
+        
+        const allNoteTypes = [basicNoteType as NoteType, ...systemNoteTypes as NoteType[], ...customNoteTypes];
+        setAvailableNoteTypes(allNoteTypes);
         
         // If editing an existing note, fetch it
         if (noteId) {
@@ -38,13 +51,17 @@ const NoteEditor: React.FC = () => {
             if (response.data.success) {
               setNote(response.data.data.rootNote);
               
-              // Find the matching note type
-              const noteType = allNoteTypes.find(
+              // Find the matching note type from the combined list
+              const currentNoteType = allNoteTypes.find(
                 (type) => type.id === response.data.data.rootNote.type
               );
               
-              if (noteType) {
-                setSelectedNoteType(noteType as NoteType);
+              if (currentNoteType) {
+                setSelectedNoteType(currentNoteType);
+              } else {
+                // Fallback to basic if type not found (e.g. custom type deleted)
+                setSelectedNoteType(basicNoteType as NoteType);
+                toast.error(`Note type "${response.data.data.rootNote.type}" not found. Defaulting to Basic Note.`); // Changed from toast.warn
               }
             } else {
               toast.error(response.data.error || 'Failed to fetch note');
@@ -143,7 +160,7 @@ const NoteEditor: React.FC = () => {
 
       {!selectedNoteType ? (
         <NoteTypeSelector
-          noteTypes={noteTypes}
+          noteTypes={availableNoteTypes} // Use availableNoteTypes
           onSelect={handleNoteTypeSelect}
         />
       ) : (

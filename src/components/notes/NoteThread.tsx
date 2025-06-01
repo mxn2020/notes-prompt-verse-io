@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Added useEffect
 import { NoteThread as NoteThreadType, Note, NoteType } from '../../types';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -9,10 +9,12 @@ import { Reply, Plus } from 'lucide-react';
 import { systemNoteTypes, basicNoteType } from '../../data/systemNoteTypes';
 import NoteForm from './NoteForm';
 import NoteTypeIcon from '@/components/ui/NoteTypeIcon';
+import { api } from '../../utils/api'; // Added api import
+import { toast } from 'sonner'; // Added toast import
 
 dayjs.extend(relativeTime);
 
-const allNoteTypes = [basicNoteType, ...systemNoteTypes] as NoteType[];
+// const allNoteTypes = [basicNoteType, ...systemNoteTypes] as NoteType[]; // This will be fetched
 
 interface NoteThreadProps {
   thread: NoteThreadType;
@@ -23,7 +25,7 @@ interface NoteThreadProps {
 interface SubNoteProps {
   subNote: Note;
   onAddSubNote: (parentId: string, content: string | Record<string, any>, noteType: NoteType) => void;
-  allNoteTypes: NoteType[];
+  availableNoteTypes: NoteType[]; // Changed from allNoteTypes to availableNoteTypes
   basicNoteType: NoteType; // Ensure this matches the actual type of basicNoteType constant
   level: number;
 }
@@ -33,6 +35,37 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
   const [isSubNoting, setIsSubNoting] = useState(false);
   const [selectedNoteType, setSelectedNoteType] = useState<NoteType>(basicNoteType as NoteType);
   const [showNoteForm, setShowNoteForm] = useState(false);
+  const [availableNoteTypes, setAvailableNoteTypes] = useState<NoteType[]>([]);
+  const [isLoadingTypes, setIsLoadingTypes] = useState(true);
+
+  useEffect(() => {
+    const fetchNoteTypes = async () => {
+      try {
+        setIsLoadingTypes(true);
+        let customNoteTypes: NoteType[] = [];
+        try {
+          const customTypesResponse = await api.get('/note-types');
+          if (customTypesResponse.data.success) {
+            customNoteTypes = customTypesResponse.data.data;
+          } else {
+            console.error('Failed to fetch custom note types:', customTypesResponse.data.error);
+            toast.error('Failed to load custom note types for sub-notes.');
+          }
+        } catch (error) {
+          console.error('Error fetching custom note types:', error);
+          toast.error('An error occurred while loading custom note types for sub-notes.');
+        }
+        const allFetchedNoteTypes = [basicNoteType as NoteType, ...systemNoteTypes as NoteType[], ...customNoteTypes];
+        setAvailableNoteTypes(allFetchedNoteTypes);
+      } catch (error) {
+        console.error('Error fetching note types for thread:', error);
+        toast.error('Failed to load note types for thread.');
+      } finally {
+        setIsLoadingTypes(false);
+      }
+    };
+    fetchNoteTypes();
+  }, []);
 
   const handleSubmitSubNote = () => {
     if (subNoteContent.trim()) {
@@ -45,12 +78,17 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
   };
 
   const handleNoteTypeChange = (typeId: string) => {
-    const noteType = allNoteTypes.find(type => type.id === typeId);
+    const noteType = availableNoteTypes.find(type => type.id === typeId); // Use availableNoteTypes
     if (noteType) {
       setSelectedNoteType(noteType);
       setShowNoteForm(noteType.id !== 'basic-note');
     }
   };
+
+  if (isLoadingTypes) {
+    // Optional: Add a loading indicator for note types
+    // return <p>Loading note types...</p>;
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -61,10 +99,10 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
         <div className="flex items-center text-sm text-gray-500 mb-4">
           <span className="font-medium bg-gray-100 px-2 py-0.5 rounded-full flex items-center gap-1">
             <NoteTypeIcon 
-              iconName={allNoteTypes.find((type: NoteType) => type.id === thread.rootNote.type)?.icon || 'file-text'} 
+              iconName={availableNoteTypes.find((type: NoteType) => type.id === thread.rootNote.type)?.icon || 'file-text'} // Use availableNoteTypes
               className="h-3 w-3" 
             />
-            {allNoteTypes.find((type: NoteType) => type.id === thread.rootNote.type)?.name || thread.rootNote.type}
+            {availableNoteTypes.find((type: NoteType) => type.id === thread.rootNote.type)?.name || thread.rootNote.type} {/* Use availableNoteTypes */}
           </span>
           <span className="mx-2">•</span>
           <time dateTime={thread.rootNote.createdAt}>{dayjs(thread.rootNote.createdAt).fromNow()}</time>
@@ -104,9 +142,9 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
                 key={subNote.id} 
                 subNote={subNote} 
                 onAddSubNote={onAddSubNote}
-                allNoteTypes={allNoteTypes}
-                basicNoteType={basicNoteType as NoteType} // Cast to NoteType if necessary, or fix type definition
-                level={0} // Starting level for direct children of the root note
+                availableNoteTypes={availableNoteTypes} // Pass availableNoteTypes
+                basicNoteType={basicNoteType as NoteType}
+                level={0}
               />
             ))}
           </div>
@@ -126,7 +164,7 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
                   <SelectValue placeholder="Select note type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {allNoteTypes.map((type) => (
+                  {availableNoteTypes.map((type) => ( // Use availableNoteTypes
                     <SelectItem key={type.id} value={type.id}>
                       <div className="flex items-center gap-2">
                         <NoteTypeIcon iconName={type.icon} className="h-4 w-4" />
@@ -200,8 +238,8 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
   );
 };
 
-const SubNote: React.FC<SubNoteProps> = ({ subNote, onAddSubNote, allNoteTypes, basicNoteType, level }) => {
-  const noteTypeInfo = allNoteTypes.find((type: NoteType) => type.id === subNote.type);
+const SubNote: React.FC<SubNoteProps> = ({ subNote, onAddSubNote, availableNoteTypes, basicNoteType, level }) => { // availableNoteTypes
+  const noteTypeInfo = availableNoteTypes.find((type: NoteType) => type.id === subNote.type); // Use availableNoteTypes
 
   const [isReplying, setIsReplying] = useState(false);
   const [replyContent, setReplyContent] = useState('');
@@ -226,7 +264,7 @@ const SubNote: React.FC<SubNoteProps> = ({ subNote, onAddSubNote, allNoteTypes, 
   };
   
   const handleReplyNoteTypeChange = (typeId: string) => {
-    const noteType = allNoteTypes.find(type => type.id === typeId);
+    const noteType = availableNoteTypes.find(type => type.id === typeId); // Use availableNoteTypes
     if (noteType) {
       setSelectedReplyNoteType(noteType);
       setShowReplyNoteForm(noteType.id !== 'basic-note');
@@ -318,7 +356,7 @@ const SubNote: React.FC<SubNoteProps> = ({ subNote, onAddSubNote, allNoteTypes, 
                 <SelectValue placeholder="Select note type" />
               </SelectTrigger>
               <SelectContent>
-                {allNoteTypes.map((type) => (
+                {availableNoteTypes.map((type) => ( // Use availableNoteTypes
                   <SelectItem key={type.id} value={type.id} className="text-xs">
                     <div className="flex items-center gap-1.5">
                       <NoteTypeIcon iconName={type.icon} className="h-3.5 w-3.5" />
@@ -392,7 +430,7 @@ const SubNote: React.FC<SubNoteProps> = ({ subNote, onAddSubNote, allNoteTypes, 
               key={childSubNote.id}
               subNote={childSubNote}
               onAddSubNote={onAddSubNote}
-              allNoteTypes={allNoteTypes}
+              availableNoteTypes={availableNoteTypes} // Pass availableNoteTypes
               basicNoteType={basicNoteType}
               level={level + 1}
             />
