@@ -16,7 +16,7 @@ interface NoteCardProps {
 }
 
 const NoteCard: React.FC<NoteCardProps> = ({ note, onTogglePin, onDuplicate, onShare, onDelete }) => {
-  const hasReplies = note.threadId && note.threadId === note.id;
+  const hasSubNotes = note.threadId && note.threadId === note.id;
   
   // Define background color based on note color
   let bgColorClass = 'bg-white';
@@ -85,7 +85,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onTogglePin, onDuplicate, onS
         {/* Footer with actions */}
         <div className="flex justify-between items-center pt-2 mt-2 border-t border-gray-200">
           <div className="flex space-x-2">
-            {hasReplies && (
+            {hasSubNotes && (
               <div className="flex items-center text-xs text-gray-500">
                 <MessageSquare className="h-3 w-3 mr-1" />
                 <span>Thread</span>

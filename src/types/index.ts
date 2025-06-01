@@ -46,7 +46,7 @@ export interface NoteImage {
 export interface NoteThread {
   id: string;
   rootNote: Note;
-  replies: Note[];
+  subNotes: Note[];
 }
 
 // Note type template types

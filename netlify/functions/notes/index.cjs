@@ -251,7 +251,7 @@ const getNoteHandler = async (event) => {
       };
     }
     
-    // If this is a thread, get all replies
+    // If this is a thread, get all sub notes
     let thread = null;
     
     if (note.threadId === note.id) {
@@ -260,15 +260,15 @@ const getNoteHandler = async (event) => {
       
       if (subNoteIds && subNoteIds.length > 0) {
         const subNotePromises = subNoteIds.map((subNoteId) => redis.get(`notes:${subNoteId}`));
-        const replies = await Promise.all(subNotePromises);
-        
+        const subNotes = await Promise.all(subNotePromises);
+
         // Filter out null values
-        const validReplies = replies.filter(Boolean);
-        
+        const validSubNotes = subNotes.filter(Boolean);
+
         thread = {
           id: note.id,
           rootNote: note,
-          replies: validReplies,
+          subNotes: validSubNotes,
         };
       }
     }
@@ -277,7 +277,7 @@ const getNoteHandler = async (event) => {
       statusCode: 200,
       body: JSON.stringify({
         success: true,
-        data: thread || { id: note.id, rootNote: note, replies: [] },
+        data: thread || { id: note.id, rootNote: note, subNotes: [] },
       }),
     };
   } catch (error) {
@@ -392,8 +392,8 @@ const createNoteHandler = async (event) => {
     
     // Add to user's notes set
     await redis.sadd(`notes:user:${userId}`, noteId);
-    
-    // If this is a sub note, add to thread's replies set
+
+    // If this is a sub note, add to thread's sub notes set
     if (threadId) {
       await redis.sadd(`notes:thread:${threadId}`, noteId);
     }
@@ -600,7 +600,7 @@ const deleteNoteHandler = async (event) => {
       };
     }
     
-    // If this is a thread root, delete all replies
+    // If this is a thread root, delete all sub notes
     if (note.threadId === note.id) {
       const subNoteIds = await redis.smembers(`notes:thread:${note.id}`);
       

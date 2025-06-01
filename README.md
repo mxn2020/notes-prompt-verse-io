@@ -6,7 +6,7 @@ A comprehensive note-taking app built for tracking daily progress, meeting notes
 
 - **Multiple Note Types**: Daily Progress, Meeting Notes, Bug Reports, Feature Ideas, Learning Logs, Code Snippets, and more
 - **Custom Note Types**: Create your own note templates with custom fields
-- **Note Threading**: Add replies and create threaded conversations
+- **Note Threading**: Add sub notes and create threaded conversations
 - **Organization**: Categories, tags, color coding, and powerful search
 - **Authentication**: Secure user authentication with personal note spaces
 - **Real-time Sync**: Automatic saving with timestamps
@@ -145,7 +145,7 @@ npm run lint
 
 1. **Create Notes**: Choose from predefined note types or create custom ones
 2. **Organize**: Use categories, tags, and colors to organize your notes
-3. **Thread Conversations**: Add replies to notes to create threaded discussions
+3. **Thread Conversations**: Add sub notes to create threaded discussions
 4. **Search & Filter**: Find notes quickly with powerful search and filtering
 5. **Daily Progress**: Track your daily progress with mood and energy tracking
 

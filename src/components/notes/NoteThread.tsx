@@ -82,15 +82,15 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
         )}
       </div>
       
-      {/* Replies */}
-      {thread.replies && thread.replies.length > 0 && (
+      {/* Sub Notes */}
+      {thread.subNotes && thread.subNotes.length > 0 && (
         <div className="border-t border-gray-200 pt-4">
           <h3 className="px-6 text-sm font-medium text-gray-500 mb-2">
-            Replies ({thread.replies.length})
+            Replies ({thread.subNotes.length})
           </h3>
           
           <div className="space-y-4">
-            {thread.replies.map((subNote) => (
+            {thread.subNotes.map((subNote) => (
               <SubNote key={subNote.id} subNote={subNote} />
             ))}
           </div>

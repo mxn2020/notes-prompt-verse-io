@@ -73,7 +73,7 @@ const NoteDetail: React.FC = () => {
         // Add the new sub note to the thread
         setNoteThread({
           ...noteThread,
-          replies: [...noteThread.replies, response.data.data],
+          subNotes: [...noteThread.subNotes, response.data.data],
         });
 
         toast.success('Sub note added successfully');
