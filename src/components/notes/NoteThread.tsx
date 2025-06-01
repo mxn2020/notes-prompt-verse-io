@@ -19,6 +19,15 @@ interface NoteThreadProps {
   onAddSubNote: (parentId: string, content: string | Record<string, any>, noteType: NoteType) => void;
 }
 
+// Define props for SubNote
+interface SubNoteProps {
+  subNote: Note;
+  onAddSubNote: (parentId: string, content: string | Record<string, any>, noteType: NoteType) => void;
+  allNoteTypes: NoteType[];
+  basicNoteType: NoteType; // Ensure this matches the actual type of basicNoteType constant
+  level: number;
+}
+
 const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
   const [subNoteContent, setSubNoteContent] = useState('');
   const [isSubNoting, setIsSubNoting] = useState(false);
@@ -27,7 +36,7 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
 
   const handleSubmitSubNote = () => {
     if (subNoteContent.trim()) {
-      onAddSubNote(thread.id, subNoteContent, selectedNoteType);
+      onAddSubNote(thread.rootNote.id, subNoteContent, selectedNoteType); // Ensure parentId is rootNote.id
       setSubNoteContent('');
       setIsSubNoting(false);
       setShowNoteForm(false);
@@ -91,13 +100,20 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
           
           <div className="space-y-4">
             {thread.subNotes.map((subNote) => (
-              <SubNote key={subNote.id} subNote={subNote} />
+              <SubNote 
+                key={subNote.id} 
+                subNote={subNote} 
+                onAddSubNote={onAddSubNote}
+                allNoteTypes={allNoteTypes}
+                basicNoteType={basicNoteType as NoteType} // Cast to NoteType if necessary, or fix type definition
+                level={0} // Starting level for direct children of the root note
+              />
             ))}
           </div>
         </div>
       )}
       
-      {/* Add sub note */}
+      {/* Add sub note to the ROOT note */}
       <div className="border-t border-gray-200 p-6 bg-gray-50">
         {isSubNoting ? (
           <div className="space-y-4">
@@ -127,7 +143,7 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
                 noteType={selectedNoteType}
                 initialValues={{}}
                 onSubmit={(data) => {
-                  onAddSubNote(thread.id, data, selectedNoteType);
+                  onAddSubNote(thread.rootNote.id, data, selectedNoteType); // Ensure parentId is rootNote.id
                   setIsSubNoting(false);
                   setShowNoteForm(false);
                   setSelectedNoteType(basicNoteType as NoteType);
@@ -184,8 +200,38 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
   );
 };
 
-const SubNote: React.FC<{ subNote: Note }> = ({ subNote }) => {
+const SubNote: React.FC<SubNoteProps> = ({ subNote, onAddSubNote, allNoteTypes, basicNoteType, level }) => {
   const noteTypeInfo = allNoteTypes.find((type: NoteType) => type.id === subNote.type);
+
+  const [isReplying, setIsReplying] = useState(false);
+  const [replyContent, setReplyContent] = useState('');
+  const [selectedReplyNoteType, setSelectedReplyNoteType] = useState<NoteType>(basicNoteType);
+  const [showReplyNoteForm, setShowReplyNoteForm] = useState(false);
+
+  const handleReplySubmit = () => {
+    if (replyContent.trim() || showReplyNoteForm) { 
+      // For NoteForm, actual content is passed by its own onSubmit
+      if (!showReplyNoteForm && replyContent.trim()) {
+         onAddSubNote(subNote.id, replyContent, selectedReplyNoteType);
+      }
+      // Resetting state is partly handled by NoteForm's onCancel/onSubmit
+      // For basic textarea:
+      if (!showReplyNoteForm) {
+        setReplyContent('');
+      }
+      setIsReplying(false);
+      setShowReplyNoteForm(false);
+      setSelectedReplyNoteType(basicNoteType);
+    }
+  };
+  
+  const handleReplyNoteTypeChange = (typeId: string) => {
+    const noteType = allNoteTypes.find(type => type.id === typeId);
+    if (noteType) {
+      setSelectedReplyNoteType(noteType);
+      setShowReplyNoteForm(noteType.id !== 'basic-note');
+    }
+  };
   
   const formatFieldValue = (key: string, value: any): string | JSX.Element | null => {
     if (!value) return null;
@@ -212,7 +258,7 @@ const SubNote: React.FC<{ subNote: Note }> = ({ subNote }) => {
   };
 
   return (
-    <div className="px-6 py-4 border-b last:border-b-0 border-gray-100">
+    <div className={`px-6 py-4 border-b last:border-b-0 border-gray-100 ${level > 0 ? 'ml-6' : ''}`}>
       <div className="flex items-center text-xs text-gray-500 mb-2">
         <span className="font-medium bg-gray-100 px-2 py-0.5 rounded-full flex items-center gap-1">
           <NoteTypeIcon iconName={noteTypeInfo?.icon || 'file-text'} className="h-3 w-3" />
@@ -248,6 +294,108 @@ const SubNote: React.FC<{ subNote: Note }> = ({ subNote }) => {
             <span key={index} className="tag tag-blue">
               #{tag}
             </span>
+          ))}
+        </div>
+      )}
+
+      {/* Reply Button */}
+      <div className="mt-2">
+        <Button variant="outline" size="sm" onClick={() => setIsReplying(true)} className="text-xs">
+          <Reply className="h-3 w-3 mr-1" />
+          Reply
+        </Button>
+      </div>
+
+      {/* Reply Form */}
+      {isReplying && (
+        <div className="mt-4 space-y-3 p-4 bg-gray-50 rounded-md">
+          <div className="flex items-center gap-2">
+            <Select
+              value={selectedReplyNoteType.id}
+              onValueChange={handleReplyNoteTypeChange}
+            >
+              <SelectTrigger className="w-[180px] h-8 text-xs">
+                <SelectValue placeholder="Select note type" />
+              </SelectTrigger>
+              <SelectContent>
+                {allNoteTypes.map((type) => (
+                  <SelectItem key={type.id} value={type.id} className="text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <NoteTypeIcon iconName={type.icon} className="h-3.5 w-3.5" />
+                      {type.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {showReplyNoteForm ? (
+            <NoteForm
+              noteType={selectedReplyNoteType}
+              initialValues={{}}
+              onSubmit={(data) => {
+                onAddSubNote(subNote.id, data, selectedReplyNoteType);
+                setIsReplying(false);
+                setShowReplyNoteForm(false);
+                setSelectedReplyNoteType(basicNoteType);
+              }}
+              onCancel={() => {
+                setIsReplying(false);
+                setShowReplyNoteForm(false);
+                setSelectedReplyNoteType(basicNoteType);
+              }}
+            />
+          ) : (
+            <>
+              <Textarea
+                value={replyContent}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReplyContent(e.target.value)}
+                placeholder={`Reply to this note...`}
+                className="text-sm p-2"
+                rows={3}
+              />
+              <div className="flex justify-end space-x-2 mt-2">
+                <Button
+                  variant="outline"
+                  size="sm" // Changed from xs to sm
+                  onClick={() => {
+                    setIsReplying(false);
+                    setReplyContent('');
+                    setSelectedReplyNoteType(basicNoteType);
+                    setShowReplyNoteForm(false);
+                  }}
+                  className="text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm" // Changed from xs to sm
+                  onClick={handleReplySubmit} // For basic textarea submission
+                  className="text-xs"
+                >
+                  <Reply className="h-3 w-3 mr-1" />
+                  Submit Reply
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Nested SubNotes */}
+      {subNote.subNotes && subNote.subNotes.length > 0 && (
+        <div className="mt-4 space-y-4 border-l-2 border-gray-200 pl-4">
+          {subNote.subNotes.map((childSubNote: Note) => ( // Added Note type for childSubNote
+            <SubNote
+              key={childSubNote.id}
+              subNote={childSubNote}
+              onAddSubNote={onAddSubNote}
+              allNoteTypes={allNoteTypes}
+              basicNoteType={basicNoteType}
+              level={level + 1}
+            />
           ))}
         </div>
       )}

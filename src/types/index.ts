@@ -34,6 +34,7 @@ export interface Note {
   images?: NoteImage[];
   createdAt: string;
   updatedAt: string;
+  subNotes?: Note[]; // Added to support nested sub-notes
 }
 
 export interface NoteImage {

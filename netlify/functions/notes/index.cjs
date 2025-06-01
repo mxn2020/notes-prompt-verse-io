@@ -251,33 +251,100 @@ const getNoteHandler = async (event) => {
       };
     }
     
-    // If this is a thread, get all sub notes
-    let thread = null;
-    
+    // Helper function to recursively fetch sub-notes
+    const fetchSubNotesRecursively = async (currentNoteId) => {
+      const subNoteIds = await redis.smembers(`notes:thread:${currentNoteId}`);
+      if (!subNoteIds || subNoteIds.length === 0) {
+        return [];
+      }
+      const subNotePromises = subNoteIds.map(async (subNoteId) => {
+        const subNoteData = await redis.get(`notes:${subNoteId}`);
+        if (subNoteData) {
+          // Recursively fetch sub-notes for this sub-note if it can act as a parent
+          // This assumes sub-notes can also have their own threadId if they are parents
+          // For now, we assume sub-notes are fetched based on the root note's threadId.
+          // If a sub-note itself becomes a parent in a deeper structure, its sub-notes
+          // would be linked via its *own* ID as a threadId if we strictly follow the current model.
+          // However, for simplicity in this fetch, we'll assume all sub-notes are linked
+          // to the main threadId passed or derived from the root.
+          // To support truly arbitrary nesting display, the client might need to make further requests,
+          // or this function needs to be smarter about how `notes:thread:{id}` is structured for nested items.
+
+          // Let's assume for now that `notes:thread:${rootNote.id}` contains ALL descendants for simplicity of retrieval.
+          // If not, and each sub-note that is a parent has its own `notes:thread:${subNote.id}` set,
+          // then we would need to recurse: subNoteData.subNotes = await fetchSubNotesRecursively(subNoteData.id);
+          // For the current structure where subNotes are added to `notes:thread:${threadId}` (of the root),
+          // this recursive call for sub-sub-notes might not be needed here if the initial flat list is sufficient
+          // and the client reconstructs the hierarchy.
+
+          // To return a nested structure directly from the API:
+          // We need to identify children of *this* subNoteData.
+          // This requires sub-notes to correctly store their parentId.
+          // The current `notes:thread:${note.id}` stores all notes in the thread flatly.
+          // We will filter and structure them.
+        }
+        return subNoteData;
+      });
+      const subNotes = await Promise.all(subNotePromises);
+      return subNotes.filter(Boolean);
+    };
+
+    // Function to build the nested structure
+    const buildNestedNotes = (rootNote, allNotesInThread) => {
+      const notesById = {};
+      allNotesInThread.forEach(n => notesById[n.id] = { ...n, subNotes: [] });
+
+      const nestedNotes = [];
+      allNotesInThread.forEach(n => {
+        if (n.parentId && notesById[n.parentId]) {
+          notesById[n.parentId].subNotes.push(notesById[n.id]);
+        } else if (n.parentId === rootNote.id) { // Direct children of the root
+          // This case should ideally not be mixed with notesById[n.parentId] if rootNote is also in allNotesInThread
+          // Let's assume allNotesInThread are only the sub-notes, not the root itself.
+        }
+      });
+      // This part needs to be careful: we want children of the current `note` (which is the root of this request)
+      // So, we filter `allNotesInThread` for those whose `parentId` is `note.id`.
+      // Then, for each of those, we recursively find their children.
+
+      const getChildren = (parentId) => {
+        return allNotesInThread
+          .filter(n => n.parentId === parentId)
+          .map(n => ({ ...n, subNotes: getChildren(n.id) }));
+      };
+      return getChildren(rootNote.id);
+    };
+
+    let responseData;
     if (note.threadId === note.id) {
       // This is a root note of a thread
-      const subNoteIds = await redis.smembers(`notes:thread:${note.id}`);
-      
-      if (subNoteIds && subNoteIds.length > 0) {
-        const subNotePromises = subNoteIds.map((subNoteId) => redis.get(`notes:${subNoteId}`));
-        const subNotes = await Promise.all(subNotePromises);
-
-        // Filter out null values
-        const validSubNotes = subNotes.filter(Boolean);
-
-        thread = {
-          id: note.id,
-          rootNote: note,
-          subNotes: validSubNotes,
-        };
+      const allNoteIdsInThread = await redis.smembers(`notes:thread:${note.id}`);
+      let allNotesInThread = [];
+      if (allNoteIdsInThread && allNoteIdsInThread.length > 0) {
+        const notePromises = allNoteIdsInThread.map(id => redis.get(`notes:${id}`));
+        allNotesInThread = (await Promise.all(notePromises)).filter(Boolean);
       }
+      
+      const nestedSubNotes = buildNestedNotes(note, allNotesInThread);
+
+      responseData = {
+        id: note.id,
+        rootNote: note,
+        subNotes: nestedSubNotes, // Return the fully nested structure
+      };
+    } else {
+      // This is a sub-note, just return it as is (or its thread if requested differently)
+      // For now, direct request for a sub-note returns its own data and its parent's thread context if needed.
+      // The current logic implies /notes/{subNoteId} would return the subNote itself as rootNote with no subNotes.
+      // This might need refinement based on desired UX for direct sub-note links.
+      responseData = { id: note.id, rootNote: note, subNotes: [] };
     }
     
     return {
       statusCode: 200,
       body: JSON.stringify({
         success: true,
-        data: thread || { id: note.id, rootNote: note, subNotes: [] },
+        data: responseData,
       }),
     };
   } catch (error) {

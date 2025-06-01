@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ChevronLeft, Edit, Trash, Copy, Pin, Share } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NoteThread from '@/components/notes/NoteThread';
-import { NoteThread as NoteThreadType, NoteType } from '../types';
+import { NoteThread as NoteThreadType, NoteType, Note } from '../types'; // Added Note import
 import { api } from '../utils/api';
 import { toast } from 'sonner';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -50,7 +50,7 @@ const NoteDetail: React.FC = () => {
         parentId,
         title: isBasicNote 
           ? 'Sub Note' 
-          : (typeof content === 'object' && content.title) || `Sub Note to ${noteThread.rootNote.title}`,
+          : (typeof content === 'object' && content.title) || `Sub Note to ${parentId}`,
         content: isBasicNote 
           ? content as string 
           : (typeof content === 'object' && content.content) || '',
@@ -70,11 +70,37 @@ const NoteDetail: React.FC = () => {
       const response = await api.post('/notes', noteData);
       
       if (response.data.success) {
-        // Add the new sub note to the thread
-        setNoteThread({
-          ...noteThread,
-          subNotes: [...noteThread.subNotes, response.data.data],
-        });
+        const newNote = response.data.data;
+        // Recursively find the parent note and add the new sub-note to its subNotes array
+        const addSubNoteRecursively = (notes: Note[], parentIdToAdd: string, noteToAdd: Note): Note[] => {
+          return notes.map(note => {
+            if (note.id === parentIdToAdd) {
+              return {
+                ...note,
+                subNotes: [...(note.subNotes || []), noteToAdd],
+              };
+            }
+            if (note.subNotes) {
+              return {
+                ...note,
+                subNotes: addSubNoteRecursively(note.subNotes, parentIdToAdd, noteToAdd),
+              };
+            }
+            return note;
+          });
+        };
+
+        if (noteThread.rootNote.id === parentId) {
+          setNoteThread({
+            ...noteThread,
+            subNotes: [...noteThread.subNotes, newNote],
+          });
+        } else {
+          setNoteThread({
+            ...noteThread,
+            subNotes: addSubNoteRecursively(noteThread.subNotes, parentId, newNote),
+          });
+        }
 
         toast.success('Sub note added successfully');
       } else {
