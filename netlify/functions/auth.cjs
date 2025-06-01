@@ -11,7 +11,7 @@ const redis = new Redis({
 // JWT secret (in production, use env variable)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const JWT_EXPIRY = '7d';
-const COOKIE_NAME = 'promptnotes_session';
+const COOKIE_NAME = process.env.COOKIE_NAME || 'promptnotes_session';
 
 // Helper functions
 const generateToken = (userId) => {
@@ -19,24 +19,32 @@ const generateToken = (userId) => {
 };
 
 const setCookie = (token) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  
   return cookie.serialize(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction, // Only secure in production
+    sameSite: isProduction ? 'strict' : 'lax', // More restrictive in production
     maxAge: 7 * 24 * 60 * 60, // 7 days
     path: '/',
+    domain: isProduction ? undefined : undefined, // Let browser set domain automatically
   });
 };
 
 const clearCookie = () => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  
   return cookie.serialize(COOKIE_NAME, '', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite: isProduction ? 'strict' : 'lax',
     maxAge: 0,
     path: '/',
+    domain: isProduction ? undefined : undefined,
   });
 };
+
+// We only manage our own cookie - no interference with other apps
 
 const verifyToken = (token) => {
   try {
@@ -113,9 +121,13 @@ const registerHandler = async (event) => {
     const token = generateToken(userId);
     
     // Set cookie
+    const cookieHeader = setCookie(token);
     const headers = {
-      'Set-Cookie': setCookie(token),
+      'Set-Cookie': cookieHeader,
     };
+    
+    console.log('Registration successful - setting cookie:', COOKIE_NAME);
+    console.log('Cookie header:', cookieHeader);
     
     // Return user without password
     const { password: _, ...userWithoutPassword } = userData;
@@ -186,9 +198,13 @@ const loginHandler = async (event) => {
     const token = generateToken(userId);
     
     // Set cookie
+    const cookieHeader = setCookie(token);
     const headers = {
-      'Set-Cookie': setCookie(token),
+      'Set-Cookie': cookieHeader,
     };
+    
+    console.log('Login successful - setting cookie:', COOKIE_NAME);
+    console.log('Cookie header:', cookieHeader);
     
     // Return user without password
     const { password: _, ...userWithoutPassword } = userData;
@@ -214,7 +230,9 @@ const loginHandler = async (event) => {
   }
 };
 
-const logoutHandler = () => {
+const logoutHandler = (event) => {
+  console.log('Logout - clearing only our cookie:', COOKIE_NAME);
+  
   return {
     statusCode: 200,
     headers: {
@@ -229,19 +247,24 @@ const logoutHandler = () => {
 
 const getMeHandler = async (event) => {
   try {
+    // Parse all cookies from the request
     const cookies = cookie.parse(event.headers.cookie || '');
-    const token = cookies[COOKIE_NAME]; // Only look for our specific cookie
     
-    console.log('Available cookies:', Object.keys(cookies));
-    console.log('Looking for cookie:', COOKIE_NAME);
-    console.log('Found token:', token ? 'YES' : 'NO');
+    // Only look for our specific promptnotes session cookie
+    const token = cookies[COOKIE_NAME];
+    
+    console.log('=== Cookie Debug ===');
+    console.log('Expected cookie name:', COOKIE_NAME);
+    console.log('All cookies received:', Object.keys(cookies));
+    console.log('Our session cookie found:', token ? 'YES' : 'NO');
+    console.log('==================');
     
     if (!token) {
       return {
         statusCode: 401,
         body: JSON.stringify({
           success: false,
-          error: 'Not authenticated - no session cookie found',
+          error: `Not authenticated - ${COOKIE_NAME} cookie not found`,
         }),
       };
     }
@@ -249,6 +272,7 @@ const getMeHandler = async (event) => {
     const decoded = verifyToken(token);
     
     if (!decoded) {
+      console.log('Token verification failed');
       return {
         statusCode: 401,
         headers: {
@@ -264,6 +288,7 @@ const getMeHandler = async (event) => {
     const user = await getAuthUser(decoded.userId);
     
     if (!user) {
+      console.log('User not found for userId:', decoded.userId);
       return {
         statusCode: 404,
         headers: {
@@ -276,6 +301,7 @@ const getMeHandler = async (event) => {
       };
     }
     
+    console.log('Authentication successful for user:', user.email);
     return {
       statusCode: 200,
       body: JSON.stringify({
