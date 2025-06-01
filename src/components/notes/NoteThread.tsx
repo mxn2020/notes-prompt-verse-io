@@ -8,8 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Reply, Plus } from 'lucide-react';
 import { systemNoteTypes, basicNoteType } from '../../data/systemNoteTypes';
 import NoteForm from './NoteForm';
+import NoteTypeIcon from '@/components/ui/NoteTypeIcon';
 
 dayjs.extend(relativeTime);
+
+const allNoteTypes = [basicNoteType, ...systemNoteTypes] as NoteType[];
 
 interface NoteThreadProps {
   thread: NoteThreadType;
@@ -21,8 +24,6 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
   const [isSubNoting, setIsSubNoting] = useState(false);
   const [selectedNoteType, setSelectedNoteType] = useState<NoteType>(basicNoteType as NoteType);
   const [showNoteForm, setShowNoteForm] = useState(false);
-
-  const allNoteTypes = [basicNoteType, ...systemNoteTypes] as NoteType[];
 
   const handleSubmitSubNote = () => {
     if (subNoteContent.trim()) {
@@ -49,8 +50,12 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
         <h2 className="text-xl font-semibold text-gray-900 mb-2">{thread.rootNote.title}</h2>
         
         <div className="flex items-center text-sm text-gray-500 mb-4">
-          <span className="font-medium bg-gray-100 px-2 py-0.5 rounded-full">
-            {thread.rootNote.type}
+          <span className="font-medium bg-gray-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <NoteTypeIcon 
+              iconName={allNoteTypes.find((type: NoteType) => type.id === thread.rootNote.type)?.icon || 'file-text'} 
+              className="h-3 w-3" 
+            />
+            {allNoteTypes.find((type: NoteType) => type.id === thread.rootNote.type)?.name || thread.rootNote.type}
           </span>
           <span className="mx-2">•</span>
           <time dateTime={thread.rootNote.createdAt}>{dayjs(thread.rootNote.createdAt).fromNow()}</time>
@@ -107,7 +112,10 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
                 <SelectContent>
                   {allNoteTypes.map((type) => (
                     <SelectItem key={type.id} value={type.id}>
-                      {type.name}
+                      <div className="flex items-center gap-2">
+                        <NoteTypeIcon iconName={type.icon} className="h-4 w-4" />
+                        {type.name}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -177,11 +185,38 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
 };
 
 const SubNote: React.FC<{ subNote: Note }> = ({ subNote }) => {
+  const noteTypeInfo = allNoteTypes.find((type: NoteType) => type.id === subNote.type);
+  
+  const formatFieldValue = (key: string, value: any): string | JSX.Element | null => {
+    if (!value) return null;
+    
+    // Find field definition to get proper label
+    const fieldDef = noteTypeInfo?.fields.find((field: any) => field.name === key);
+    const label = fieldDef?.label || key.charAt(0).toUpperCase() + key.slice(1);
+    
+    // Format based on field type
+    if (fieldDef?.type === 'date' && value) {
+      return `${label}: ${dayjs(value).format('MMM D, YYYY')}`;
+    }
+    
+    if (typeof value === 'string' && value.length > 100) {
+      return (
+        <div>
+          <span className="font-medium">{label}:</span>
+          <div className="mt-1 whitespace-pre-wrap">{value}</div>
+        </div>
+      );
+    }
+    
+    return `${label}: ${value}`;
+  };
+
   return (
     <div className="px-6 py-4 border-b last:border-b-0 border-gray-100">
       <div className="flex items-center text-xs text-gray-500 mb-2">
-        <span className="font-medium bg-gray-100 px-2 py-0.5 rounded-full">
-          {subNote.type}
+        <span className="font-medium bg-gray-100 px-2 py-0.5 rounded-full flex items-center gap-1">
+          <NoteTypeIcon iconName={noteTypeInfo?.icon || 'file-text'} className="h-3 w-3" />
+          {noteTypeInfo?.name || subNote.type}
         </span>
         <span className="mx-2">•</span>
         <time dateTime={subNote.createdAt}>{dayjs(subNote.createdAt).fromNow()}</time>
@@ -196,14 +231,16 @@ const SubNote: React.FC<{ subNote: Note }> = ({ subNote }) => {
       </div>
 
       {/* Display custom fields if they exist */}
-      {Object.entries(subNote.fields || {}).map(([key, value]) => (
-        value && (
+      {Object.entries(subNote.fields || {}).map(([key, value]) => {
+        const formatted = formatFieldValue(key, value);
+        if (!formatted) return null;
+        
+        return (
           <div key={key} className="text-sm text-gray-600 mt-2">
-            <span className="font-medium">{key}: </span>
-            <span>{value}</span>
+            {typeof formatted === 'string' ? formatted : formatted}
           </div>
-        )
-      ))}
+        );
+      })}
       
       {subNote.tags && subNote.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mt-2">
