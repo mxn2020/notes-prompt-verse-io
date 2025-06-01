@@ -40,13 +40,13 @@ const NoteDetail: React.FC = () => {
     fetchNoteThread();
   }, [noteId, navigate]);
 
-  const handleAddReply = async (parentId: string, content: string) => {
+  const handleAddSubNote = async (parentId: string, content: string) => {
     if (!noteThread) return;
 
     try {
       const response = await api.post('/notes', {
         parentId,
-        title: `Reply to ${noteThread.rootNote.title}`,
+        title: `Sub Note to ${noteThread.rootNote.title}`,
         content,
         type: 'basic-note',
         fields: {},
@@ -54,19 +54,19 @@ const NoteDetail: React.FC = () => {
       });
       
       if (response.data.success) {
-        // Add the new reply to the thread
+        // Add the new sub note to the thread
         setNoteThread({
           ...noteThread,
           replies: [...noteThread.replies, response.data.data],
         });
-        
-        toast.success('Reply added successfully');
+
+        toast.success('Sub note added successfully');
       } else {
-        toast.error(response.data.error || 'Failed to add reply');
+        toast.error(response.data.error || 'Failed to add sub note');
       }
     } catch (error) {
-      console.error('Error adding reply:', error);
-      toast.error('Failed to add reply. Please try again.');
+      console.error('Error adding sub note:', error);
+      toast.error('Failed to add sub note. Please try again.');
     }
   };
 
@@ -313,7 +313,7 @@ const NoteDetail: React.FC = () => {
         </div>
       </div>
 
-      <NoteThread thread={displayNoteThread} onAddReply={handleAddReply} />
+      <NoteThread thread={displayNoteThread} onAddSubNote={handleAddSubNote} />
     </div>
   );
 };

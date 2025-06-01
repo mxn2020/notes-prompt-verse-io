@@ -10,18 +10,18 @@ dayjs.extend(relativeTime);
 
 interface NoteThreadProps {
   thread: NoteThreadType;
-  onAddReply: (parentId: string, content: string) => void;
+  onAddSubNote: (parentId: string, content: string) => void;
 }
 
-const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddReply }) => {
-  const [replyContent, setReplyContent] = useState('');
-  const [isReplying, setIsReplying] = useState(false);
+const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
+  const [subNoteContent, setSubNoteContent] = useState('');
+  const [isSubNoting, setIsSubNoting] = useState(false);
 
-  const handleSubmitReply = () => {
-    if (replyContent.trim()) {
-      onAddReply(thread.id, replyContent);
-      setReplyContent('');
-      setIsReplying(false);
+  const handleSubmitSubNote = () => {
+    if (subNoteContent.trim()) {
+      onAddSubNote(thread.id, subNoteContent);
+      setSubNoteContent('');
+      setIsSubNoting(false);
     }
   };
 
@@ -68,29 +68,29 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddReply }) => {
           </h3>
           
           <div className="space-y-4">
-            {thread.replies.map((reply) => (
-              <ReplyNote key={reply.id} reply={reply} />
+            {thread.replies.map((subNote) => (
+              <SubNote key={subNote.id} subNote={subNote} />
             ))}
           </div>
         </div>
       )}
       
-      {/* Add reply */}
+      {/* Add sub note */}
       <div className="border-t border-gray-200 p-6 bg-gray-50">
-        {isReplying ? (
+        {isSubNoting ? (
           <div className="space-y-3">
             <Textarea
-              value={replyContent}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReplyContent(e.target.value)}
-              placeholder="Write your reply..."
+              value={subNoteContent}
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSubNoteContent(e.target.value)}
+              placeholder="Write your sub note..."
             />
             <div className="flex justify-end space-x-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setIsReplying(false);
-                  setReplyContent('');
+                  setIsSubNoting(false);
+                  setSubNoteContent('');
                 }}
               >
                 Cancel
@@ -98,21 +98,21 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddReply }) => {
               <Button
                 variant="default"
                 size="sm"
-                onClick={handleSubmitReply}
+                onClick={handleSubmitSubNote}
               >
                 <Reply className="h-4 w-4" />
-                Submit Reply
+                Submit Sub Note
               </Button>
             </div>
           </div>
         ) : (
           <Button
             variant="outline"
-            onClick={() => setIsReplying(true)}
+            onClick={() => setIsSubNoting(true)}
             className="w-full"
           >
             <Plus className="h-4 w-4" />
-            Add a reply
+            Add a sub note
           </Button>
         )}
       </div>
@@ -120,24 +120,24 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddReply }) => {
   );
 };
 
-const ReplyNote: React.FC<{ reply: Note }> = ({ reply }) => {
+const SubNote: React.FC<{ subNote: Note }> = ({ subNote }) => {
   return (
     <div className="px-6 py-4 border-b last:border-b-0 border-gray-100">
       <div className="flex items-center text-xs text-gray-500 mb-2">
         <span className="font-medium bg-gray-100 px-2 py-0.5 rounded-full">
-          {reply.type}
+          {subNote.type}
         </span>
         <span className="mx-2">•</span>
-        <time dateTime={reply.createdAt}>{dayjs(reply.createdAt).fromNow()}</time>
+        <time dateTime={subNote.createdAt}>{dayjs(subNote.createdAt).fromNow()}</time>
       </div>
       
       <div className="prose prose-sm max-w-none mb-2">
-        <p className="text-gray-700 whitespace-pre-wrap">{reply.content}</p>
+        <p className="text-gray-700 whitespace-pre-wrap">{subNote.content}</p>
       </div>
       
-      {reply.tags && reply.tags.length > 0 && (
+      {subNote.tags && subNote.tags.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {reply.tags.map((tag, index) => (
+          {subNote.tags.map((tag, index) => (
             <span key={index} className="tag tag-blue">
               #{tag}
             </span>

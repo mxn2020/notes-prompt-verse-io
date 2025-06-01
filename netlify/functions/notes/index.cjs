@@ -256,11 +256,11 @@ const getNoteHandler = async (event) => {
     
     if (note.threadId === note.id) {
       // This is a root note of a thread
-      const replyIds = await redis.smembers(`notes:thread:${note.id}`);
+      const subNoteIds = await redis.smembers(`notes:thread:${note.id}`);
       
-      if (replyIds && replyIds.length > 0) {
-        const replyPromises = replyIds.map((replyId) => redis.get(`notes:${replyId}`));
-        const replies = await Promise.all(replyPromises);
+      if (subNoteIds && subNoteIds.length > 0) {
+        const subNotePromises = subNoteIds.map((subNoteId) => redis.get(`notes:${subNoteId}`));
+        const replies = await Promise.all(subNotePromises);
         
         // Filter out null values
         const validReplies = replies.filter(Boolean);
@@ -349,7 +349,7 @@ const createNoteHandler = async (event) => {
     const noteId = crypto.randomUUID();
     const now = new Date().toISOString();
     
-    // If this is a reply to a parent note, get the parent note
+    // If this is a sub note to a parent note, get the parent note
     let threadId = null;
     
     if (parentId) {
@@ -393,7 +393,7 @@ const createNoteHandler = async (event) => {
     // Add to user's notes set
     await redis.sadd(`notes:user:${userId}`, noteId);
     
-    // If this is a reply, add to thread's replies set
+    // If this is a sub note, add to thread's replies set
     if (threadId) {
       await redis.sadd(`notes:thread:${threadId}`, noteId);
     }
@@ -602,30 +602,30 @@ const deleteNoteHandler = async (event) => {
     
     // If this is a thread root, delete all replies
     if (note.threadId === note.id) {
-      const replyIds = await redis.smembers(`notes:thread:${note.id}`);
+      const subNoteIds = await redis.smembers(`notes:thread:${note.id}`);
       
-      if (replyIds && replyIds.length > 0) {
-        for (const replyId of replyIds) {
-          const reply = await redis.get(`notes:${replyId}`);
-          
-          if (reply) {
+      if (subNoteIds && subNoteIds.length > 0) {
+        for (const subNoteId of subNoteIds) {
+          const subNote = await redis.get(`notes:${subNoteId}`);
+
+          if (subNote) {
             // Remove from tag sets
-            if (reply.tags && reply.tags.length > 0) {
-              for (const tag of reply.tags) {
-                await redis.srem(`notes:tag:${userId}:${tag}`, replyId);
+            if (subNote.tags && subNote.tags.length > 0) {
+              for (const tag of subNote.tags) {
+                await redis.srem(`notes:tag:${userId}:${tag}`, subNoteId);
               }
             }
             
             // Remove from category set
-            if (reply.category) {
-              await redis.srem(`notes:category:${userId}:${reply.category}`, replyId);
+            if (subNote.category) {
+              await redis.srem(`notes:category:${userId}:${subNote.category}`, subNoteId);
             }
             
             // Remove from user's notes set
-            await redis.srem(`notes:user:${userId}`, replyId);
+            await redis.srem(`notes:user:${userId}`, subNoteId);
             
-            // Delete the reply
-            await redis.del(`notes:${replyId}`);
+            // Delete the sub note
+            await redis.del(`notes:${subNoteId}`);
           }
         }
         
@@ -633,7 +633,7 @@ const deleteNoteHandler = async (event) => {
         await redis.del(`notes:thread:${note.id}`);
       }
     } else if (note.threadId) {
-      // This is a reply, remove from thread set
+      // This is a sub note, remove from thread set
       await redis.srem(`notes:thread:${note.threadId}`, noteId);
     }
     
