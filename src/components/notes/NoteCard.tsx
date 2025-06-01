@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Pin, MessageSquare, Edit } from 'lucide-react';
+import { Pin, MessageSquare, Edit, Copy, Share, Trash } from 'lucide-react';
 import { Note } from '../../types';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -10,9 +10,12 @@ dayjs.extend(relativeTime);
 interface NoteCardProps {
   note: Note;
   onTogglePin?: (id: string) => void;
+  onDuplicate?: (note: Note) => void;
+  onShare?: (note: Note) => void;
+  onDelete?: (id: string) => void;
 }
 
-const NoteCard: React.FC<NoteCardProps> = ({ note, onTogglePin }) => {
+const NoteCard: React.FC<NoteCardProps> = ({ note, onTogglePin, onDuplicate, onShare, onDelete }) => {
   const hasReplies = note.threadId && note.threadId === note.id;
   
   // Define background color based on note color
@@ -46,16 +49,11 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onTogglePin }) => {
       <div className="p-4">
         {/* Title and pin button */}
         <div className="flex justify-between items-start mb-2">
-          <Link to={`/notes/${note.id}`} className="text-lg font-medium text-gray-900 hover:text-primary-600">
+          <Link to={`/notes/${note.id}`} className="text-lg font-medium text-gray-900 hover:text-primary-600 flex-1">
             {note.title}
           </Link>
-          {onTogglePin && (
-            <button
-              onClick={() => onTogglePin(note.id)}
-              className={`p-1 rounded-full hover:bg-gray-100 ${note.isPinned ? 'text-primary-600' : 'text-gray-400'}`}
-            >
-              <Pin className="h-4 w-4" />
-            </button>
+          {note.isPinned && (
+            <Pin className="h-4 w-4 text-primary-600 mt-1 ml-2 flex-shrink-0" />
           )}
         </div>
         
@@ -101,12 +99,76 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onTogglePin }) => {
             )}
           </div>
           
-          <Link 
-            to={`/notes/${note.id}/edit`}
-            className="p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-gray-100"
-          >
-            <Edit className="h-4 w-4" />
-          </Link>
+          <div className="flex items-center space-x-1">
+            {/* Pin Button */}
+            {onTogglePin && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  onTogglePin(note.id);
+                }}
+                className={`p-1 rounded hover:bg-gray-100 transition-colors ${
+                  note.isPinned ? 'text-primary-600' : 'text-gray-400 hover:text-gray-600'
+                }`}
+                title={note.isPinned ? 'Unpin note' : 'Pin note'}
+              >
+                <Pin className="h-4 w-4" />
+              </button>
+            )}
+            
+            {/* Duplicate Button */}
+            {onDuplicate && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  onDuplicate(note);
+                }}
+                className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                title="Duplicate note"
+              >
+                <Copy className="h-4 w-4" />
+              </button>
+            )}
+            
+            {/* Share Button */}
+            {onShare && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  onShare(note);
+                }}
+                className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                title="Share note"
+              >
+                <Share className="h-4 w-4" />
+              </button>
+            )}
+            
+            {/* Edit Button */}
+            <Link 
+              to={`/notes/${note.id}/edit`}
+              className="p-1 rounded text-gray-400 hover:text-primary-600 hover:bg-gray-100 transition-colors"
+              title="Edit note"
+            >
+              <Edit className="h-4 w-4" />
+            </Link>
+            
+            {/* Delete Button */}
+            {onDelete && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (window.confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
+                    onDelete(note.id);
+                  }
+                }}
+                className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                title="Delete note"
+              >
+                <Trash className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

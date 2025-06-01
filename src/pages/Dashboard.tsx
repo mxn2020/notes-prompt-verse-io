@@ -73,6 +73,8 @@ const Dashboard: React.FC = () => {
         );
         
         toast.error(response.data.error || 'Failed to update note');
+      } else {
+        toast.success(updatedNote.isPinned ? 'Note pinned' : 'Note unpinned');
       }
     } catch (error) {
       console.error('Error updating note:', error);
@@ -81,6 +83,99 @@ const Dashboard: React.FC = () => {
       setNotes((prevNotes) => [...prevNotes]);
       
       toast.error('Failed to update note. Please try again.');
+    }
+  };
+
+  const handleDuplicate = async (note: Note) => {
+    try {
+      const duplicatedNote = {
+        title: `Copy of ${note.title}`,
+        content: note.content,
+        type: note.type,
+        fields: note.fields,
+        tags: note.tags,
+        category: note.category,
+        color: note.color,
+      };
+
+      const response = await api.post('/notes', duplicatedNote);
+      
+      if (response.data.success) {
+        // Add the new note to the list
+        setNotes((prevNotes) => [response.data.data, ...prevNotes]);
+        toast.success('Note duplicated successfully');
+      } else {
+        toast.error(response.data.error || 'Failed to duplicate note');
+      }
+    } catch (error) {
+      console.error('Error duplicating note:', error);
+      toast.error('Failed to duplicate note. Please try again.');
+    }
+  };
+
+  const handleShare = async (note: Note) => {
+    try {
+      // Create a shareable text with note content
+      const shareText = `${note.title}\n\n${note.content}\n\n${note.tags?.length ? `Tags: ${note.tags.map(tag => `#${tag}`).join(' ')}` : ''}`;
+      
+      // Check if the browser supports the Web Share API
+      if (navigator.share) {
+        await navigator.share({
+          title: note.title,
+          text: shareText,
+          url: window.location.origin + `/notes/${note.id}`,
+        });
+        toast.success('Note shared successfully');
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(shareText);
+        toast.success('Note content copied to clipboard');
+      }
+    } catch (error) {
+      console.error('Error sharing note:', error);
+      // Fallback: try to copy to clipboard
+      try {
+        const shareText = `${note.title}\n\n${note.content}`;
+        await navigator.clipboard.writeText(shareText);
+        toast.success('Note content copied to clipboard');
+      } catch (clipboardError) {
+        toast.error('Failed to share note. Please try again.');
+      }
+    }
+  };
+
+  const handleDelete = async (noteId: string) => {
+    try {
+      const noteToDelete = notes.find((note) => note.id === noteId);
+      
+      if (!noteToDelete) return;
+      
+      // Optimistic update - remove from UI immediately
+      setNotes((prevNotes) => prevNotes.filter((note) => note.id !== noteId));
+      
+      const response = await api.delete(`/notes/${noteId}`);
+      
+      if (!response.data.success) {
+        // Revert if the API call fails
+        setNotes((prevNotes) => [...prevNotes, noteToDelete]);
+        toast.error(response.data.error || 'Failed to delete note');
+      } else {
+        toast.success('Note deleted successfully');
+      }
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      
+      // Revert on error - fetch fresh data
+      try {
+        const response = await api.get('/notes');
+        if (response.data.success) {
+          setNotes(response.data.data);
+        }
+      } catch (refetchError) {
+        console.error('Error refetching notes:', refetchError);
+      }
+      
+      toast.error('Failed to delete note. Please try again.');
     }
   };
 
@@ -224,6 +319,9 @@ const Dashboard: React.FC = () => {
                   key={note.id}
                   note={note}
                   onTogglePin={handleTogglePin}
+                  onDuplicate={handleDuplicate}
+                  onShare={handleShare}
+                  onDelete={handleDelete}
                 />
               ))}
           </div>
@@ -263,6 +361,9 @@ const Dashboard: React.FC = () => {
                   key={note.id}
                   note={note}
                   onTogglePin={handleTogglePin}
+                  onDuplicate={handleDuplicate}
+                  onShare={handleShare}
+                  onDelete={handleDelete}
                 />
               ))}
           </div>
