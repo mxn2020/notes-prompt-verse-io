@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ChevronLeft, Edit, Trash, Copy, Pin, Share } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import NoteThread from '@/components/notes/NoteThread';
-import { NoteThread as NoteThreadType } from '../types';
+import { NoteThread as NoteThreadType, NoteType } from '../types';
 import { api } from '../utils/api';
 import { toast } from 'sonner';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
@@ -40,16 +40,16 @@ const NoteDetail: React.FC = () => {
     fetchNoteThread();
   }, [noteId, navigate]);
 
-  const handleAddSubNote = async (parentId: string, content: string) => {
+  const handleAddSubNote = async (parentId: string, content: string, noteType: NoteType) => {
     if (!noteThread) return;
 
     try {
       const response = await api.post('/notes', {
         parentId,
-        title: `Sub Note to ${noteThread.rootNote.title}`,
-        content,
-        type: 'basic-note',
-        fields: {},
+        title: noteType.id === 'basic-note' ? 'Sub Note' : content.title || `Sub Note to ${noteThread.rootNote.title}`,
+        content: noteType.id === 'basic-note' ? content : content.content,
+        type: noteType.id,
+        fields: noteType.id === 'basic-note' ? {} : content.fields || {},
         tags: [],
       });
       
@@ -185,62 +185,6 @@ const NoteDetail: React.FC = () => {
     }
   };
 
-  // For demo purposes, create a mock note thread
-  const demoNoteThread: NoteThreadType = {
-    id: '3',
-    rootNote: {
-      id: '3',
-      userId: 'user1',
-      title: 'Kickoff Meeting Notes',
-      content: 'Discussed project scope, timeline, and key features. Everyone is excited about the hackathon!',
-      type: 'Meeting Notes',
-      fields: {
-        attendees: 'John, Sarah, Miguel',
-        action_items: 'John: Research APIs, Sarah: Design mockups, Miguel: Set up the repo',
-        follow_up: '2023-06-15'
-      },
-      category: 'Meetings',
-      tags: ['meeting', 'kickoff'],
-      isPinned: false,
-      isArchived: false,
-      threadId: '3',
-      createdAt: new Date(Date.now() - 259200000).toISOString(),
-      updatedAt: new Date(Date.now() - 259200000).toISOString()
-    },
-    replies: [
-      {
-        id: '4',
-        userId: 'user1',
-        title: 'Reply to Kickoff Meeting Notes',
-        content: 'I\'ve started researching APIs for the project. Found some good options we can discuss tomorrow.',
-        type: 'Basic Note',
-        fields: {},
-        parentId: '3',
-        threadId: '3',
-        tags: ['research'],
-        isPinned: false,
-        isArchived: false,
-        createdAt: new Date(Date.now() - 172800000).toISOString(),
-        updatedAt: new Date(Date.now() - 172800000).toISOString()
-      },
-      {
-        id: '5',
-        userId: 'user1',
-        title: 'Reply to Kickoff Meeting Notes',
-        content: 'Just pushed the initial repo setup. Everyone should have access now!',
-        type: 'Basic Note',
-        fields: {},
-        parentId: '3',
-        threadId: '3',
-        tags: ['setup'],
-        isPinned: false,
-        isArchived: false,
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-        updatedAt: new Date(Date.now() - 86400000).toISOString()
-      }
-    ]
-  };
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -249,8 +193,9 @@ const NoteDetail: React.FC = () => {
     );
   }
 
-  // If we don't have a real note thread yet, use the demo one
-  const displayNoteThread = noteThread || demoNoteThread;
+  if (!noteThread) {
+    return null;
+  }
 
   return (
     <div>
@@ -275,7 +220,7 @@ const NoteDetail: React.FC = () => {
             onClick={handleTogglePin}
           >
             <Pin className="h-4 w-4" />
-            {noteThread?.rootNote.isPinned ? 'Unpin' : 'Pin'}
+            {noteThread.rootNote.isPinned ? 'Unpin' : 'Pin'}
           </Button>
           <Button
             variant="outline"
@@ -313,7 +258,7 @@ const NoteDetail: React.FC = () => {
         </div>
       </div>
 
-      <NoteThread thread={displayNoteThread} onAddSubNote={handleAddSubNote} />
+      <NoteThread thread={noteThread} onAddSubNote={handleAddSubNote} />
     </div>
   );
 };

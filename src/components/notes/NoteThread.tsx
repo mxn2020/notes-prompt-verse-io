@@ -1,27 +1,44 @@
 import React, { useState } from 'react';
-import { NoteThread as NoteThreadType, Note } from '../../types';
+import { NoteThread as NoteThreadType, Note, NoteType } from '../../types';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Reply, Plus } from 'lucide-react';
+import { systemNoteTypes, basicNoteType } from '../../data/systemNoteTypes';
+import NoteForm from './NoteForm';
 
 dayjs.extend(relativeTime);
 
 interface NoteThreadProps {
   thread: NoteThreadType;
-  onAddSubNote: (parentId: string, content: string) => void;
+  onAddSubNote: (parentId: string, content: string, noteType: NoteType) => void;
 }
 
 const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
   const [subNoteContent, setSubNoteContent] = useState('');
   const [isSubNoting, setIsSubNoting] = useState(false);
+  const [selectedNoteType, setSelectedNoteType] = useState<NoteType>(basicNoteType as NoteType);
+  const [showNoteForm, setShowNoteForm] = useState(false);
+
+  const allNoteTypes = [basicNoteType, ...systemNoteTypes] as NoteType[];
 
   const handleSubmitSubNote = () => {
     if (subNoteContent.trim()) {
-      onAddSubNote(thread.id, subNoteContent);
+      onAddSubNote(thread.id, subNoteContent, selectedNoteType);
       setSubNoteContent('');
       setIsSubNoting(false);
+      setShowNoteForm(false);
+      setSelectedNoteType(basicNoteType as NoteType);
+    }
+  };
+
+  const handleNoteTypeChange = (typeId: string) => {
+    const noteType = allNoteTypes.find(type => type.id === typeId);
+    if (noteType) {
+      setSelectedNoteType(noteType);
+      setShowNoteForm(noteType.id !== 'basic-note');
     }
   };
 
@@ -78,32 +95,71 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
       {/* Add sub note */}
       <div className="border-t border-gray-200 p-6 bg-gray-50">
         {isSubNoting ? (
-          <div className="space-y-3">
-            <Textarea
-              value={subNoteContent}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSubNoteContent(e.target.value)}
-              placeholder="Write your sub note..."
-            />
-            <div className="flex justify-end space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setIsSubNoting(false);
-                  setSubNoteContent('');
-                }}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedNoteType.id}
+                onValueChange={handleNoteTypeChange}
               >
-                Cancel
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleSubmitSubNote}
-              >
-                <Reply className="h-4 w-4" />
-                Submit Sub Note
-              </Button>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Select note type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allNoteTypes.map((type) => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+
+            {showNoteForm ? (
+              <NoteForm
+                noteType={selectedNoteType}
+                initialValues={{}}
+                onSubmit={(data) => {
+                  onAddSubNote(thread.id, data.content, selectedNoteType);
+                  setIsSubNoting(false);
+                  setShowNoteForm(false);
+                  setSelectedNoteType(basicNoteType as NoteType);
+                }}
+                onCancel={() => {
+                  setIsSubNoting(false);
+                  setShowNoteForm(false);
+                  setSelectedNoteType(basicNoteType as NoteType);
+                }}
+              />
+            ) : (
+              <>
+                <Textarea
+                  value={subNoteContent}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setSubNoteContent(e.target.value)}
+                  placeholder="Write your sub note..."
+                />
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsSubNoting(false);
+                      setSubNoteContent('');
+                      setSelectedNoteType(basicNoteType as NoteType);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleSubmitSubNote}
+                  >
+                    <Reply className="h-4 w-4" />
+                    Submit Sub Note
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <Button
@@ -131,12 +187,26 @@ const SubNote: React.FC<{ subNote: Note }> = ({ subNote }) => {
         <time dateTime={subNote.createdAt}>{dayjs(subNote.createdAt).fromNow()}</time>
       </div>
       
+      {subNote.title && subNote.title !== 'Sub Note' && (
+        <h4 className="font-medium text-gray-900 mb-2">{subNote.title}</h4>
+      )}
+      
       <div className="prose prose-sm max-w-none mb-2">
         <p className="text-gray-700 whitespace-pre-wrap">{subNote.content}</p>
       </div>
+
+      {/* Display custom fields if they exist */}
+      {Object.entries(subNote.fields || {}).map(([key, value]) => (
+        value && (
+          <div key={key} className="text-sm text-gray-600 mt-2">
+            <span className="font-medium">{key}: </span>
+            <span>{value}</span>
+          </div>
+        )
+      ))}
       
       {subNote.tags && subNote.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1 mt-2">
           {subNote.tags.map((tag, index) => (
             <span key={index} className="tag tag-blue">
               #{tag}
