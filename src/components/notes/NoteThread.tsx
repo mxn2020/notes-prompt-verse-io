@@ -86,7 +86,7 @@ const NoteThread: React.FC<NoteThreadProps> = ({ thread, onAddSubNote }) => {
       {thread.subNotes && thread.subNotes.length > 0 && (
         <div className="border-t border-gray-200 pt-4">
           <h3 className="px-6 text-sm font-medium text-gray-500 mb-2">
-            Replies ({thread.subNotes.length})
+            Sub Notes ({thread.subNotes.length})
           </h3>
           
           <div className="space-y-4">
