@@ -1,6 +1,6 @@
 const cookie = require('cookie');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const { Redis } = require('@upstash/redis');
 
 // Initialize Redis client
